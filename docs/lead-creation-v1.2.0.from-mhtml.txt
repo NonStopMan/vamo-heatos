@@ -1,0 +1,641 @@
+Lead Creation v1.2.0 Skip to content Vamo Public APIs Lead Creation v1.2.0 Get Notion free Lead Creation v1.2.0
+
+Blueprint for Vamo API endpoints. For technical questions please contact our developer team via our e-mail  tech-heatos@vamo-energy.com . For further business questions or inquiries please contact your corresponding Vamo Partner. Access Endpoints POST https://VAMO-API-URL Output and Data Structures LeadCreationResult JSON Object ErrorResponse JSON Object Examples Example 1 - Minimal Payload Input Output Example 2 - Success qualification Input Output Example 3 - Success discovery Input Output Example 4 - Success selling Input Output Configurator Flow Chart DA 1 Version History Synced Block - ONLY EDIT in Access
+
+The Vamo API offers the following authentication methods: Bearer  Authentication The credentials can be obtained through your main point of contact. Endpoints
+
+POST https://VAMO-API-URL
+
+The Vamo API endpoint will be generated on a per-partner basis. The URL can be obtained through your main Vamo Contact Person. The API usage flows are basically one POST request per new Lead: Vamo Partner Vamo Partner POST { Lead 1 JSON } HTTP Response Code (201, 400, 405, 409 or 500) POST { Lead 2 JSON } HTTP Response Code (201, 400, 405, 409 or 500) ��� The Lead can be submitted as a simple JSON struct, the entire JSON description can be found below. The fields are marked as��� Required if must be provided in all cases Recommended for discovery if this field must be filled in order for the lead to reach the discovery stage. Recommended for Selling if this field must be filled in order for the lead to reach the selling stage. Optional otherwise {
+// API Version. Set "1.2.0"
+"version" : "1.2.0" ,
+// Optional, an ID for the Lead, given by the lead provider
+"id" : "134abec12" ,
+"contact" : {
+"contactInformation" : {
+// Possible choices: "Frau", "Mann", "Divers"
+"salutation" : "Mann" ,
+// Required. String
+"firstName" : "Noah" ,
+// Required. String
+"lastName" : "Schonn" ,
+// Required. String Phone Number with Country Code
+"phone" : "+49 0123 454635" ,
+// Required. String
+"email" : "lead@test.de" ,
+// Boolean: true, false
+"newsletterSingleOptIn" : true
+} ,
+// Address of the Lead, used for Invoicing
+"address" : {
+// String
+"street" : "Pilgrimstra��e 6" ,
+// String
+"city" : "K��ln" ,
+// String (PLZ)
+"postalCode" : "50676" ,
+// ISO Country Code (e.g. "DE" for Germany)
+"countryCode" : "DE" ,
+// String
+"addressAddition" : "1. Etage"
+} ,
+// Optional marketing object
+"marketing" : {
+// Optional, String, please align with Vamo regarding the values of this Field
+"customerLoyaltyProgramType" : "Friends of Vamo" ,
+// Optional, String
+"customerLoyaltyProgramId" : "0123abc"
+}
+} ,
+"building" : {
+// Address of the Building where the Heat Pump is to be installed
+"address" : {
+// String
+"street" : "Pilgrimstra��e 6" ,
+// String
+"city" : "K��ln" ,
+// String (PLZ). Pay attention here (small c in code)
+"postalCode" : "50676" ,
+// ISO Country Code (e.g. "DE" for Germany)
+"countryCode" : "DE" ,
+// String
+"addressAddition" : "1. Etage"
+} ,
+"buildingInformation" : {
+// Recommended for qualification. Possible choices: Einfamilienhaus / Zweifamilienhaus, Doppelhaus / Reihenhaus, Wohnung, Gewerbe, Mehrfamilienhaus, Sonstiges
+"immoType" : "Einfamilienhaus / Zweifamilienhaus" ,
+// Recommended for qualification. If the building has heritage Protection, possible values "Ja", "Nein"
+"heritageProtection" : "Nein" ,
+// Recommended for selling. Number (YYYY)
+"constructionYear" : 1994 ,
+// Recommended for selling. The size in square meter of the living area (heated area is normally = or less than this number)
+"livingSpace" : 170 ,
+// Recommended for selling. String (If the exact year is not known only a range)
+"constructionYearString" : "vor 1995" ,
+// Recommended for discovery. Number
+"residentialUnits" : 1 ,
+// Optional, Recommended for discovery. Possible choices: "weniger als 4qm", "mehr als 4 qm"
+"boilerRoomSize" : "mehr als 4 qm" ,
+// Optional, Recommended for discovery. Possible choices: "niedriger als 180 cm", "180 - 199 cm", "h��her als 199 cm"
+"installationLocationCeilingHeight" : "180 - 199 cm" ,
+// Optional, Recommended for discovery. Possible choices: "Ja", "Nein"
+"widthPathway" : "Ja" ,
+// Optional, Recommended for discovery. Possible choices: "Ja", "Nein"
+"heightPathway" : "Ja" ,
+// Optional, Recommended for selling. Possible choices: "no_room", "one_room", "two_rooms_or_more"
+"roomsBetweenHeatingRoomAndOutdoorUnit" : "one_room" ,
+// Optional, Recommended for selling. Possible choices: "Keller", "Ergeschoss", "Obergeschoss", "Dachgeschoss"
+"meterClosetLocation" : "Keller" ,
+// Optional, Recommended for selling. Possible choices: "Keller", "Ergeschoss", "Obergeschoss", "Dachgeschoss"
+"electricityConnectionLocation" : "Keller" ,
+// Recommended for selling. Possible choices: "water_or_gas_pipe", "grounding_spike_or_foundation", "no_grounding", "unknown"
+"groundingType" : "water_or_gas_pipe" ,
+// Recommended for selling. Boolean: true, false
+"hasSolarThermalSystem" : true ,
+// Recommended for selling. number of people in the household. number
+"personsHousehold" : 4
+} ,
+"ownershipRelationships" : {
+// DEPRECATED Optional, empfohlen. M��gliche Werte: "Eigent��mer", "Teileigent��mer", "Sonstiges"
+"ownershipRelationship" : "Eigent��mer" ,
+// DEPRECATED Pflichtfeld wenn ownershipRelationship "Teileigent��mer" oder "Sonstiges" ist
+"ownershipRelationshipExplanation" : "" ,
+// DEPRECATED Pflichtfeld wenn ownershipRelationship "Teileigent��mer" oder "Sonstiges" ist. Number
+"numberOfOwners" : 1 ,
+// Recommended for selling. Boolean: true, false
+"ownerOccupiedHousing" : true ,
+// Recommended for selling. M��gliche Werte: "one_owner", "two_owners", "community_of_owners"
+"type" : "one_owner"
+} ,
+"energyRelevantInformation" : {
+// Optional, Recommended for qualification. Number
+"heatedArea" : 185 ,
+// String (z.B. "185 qm��")
+"heatedAreaString" : "185 qm��" ,
+// Optional, Recommended for discovery. M��gliche Werte: "Heizk��rper", "Fu��bodenheizung", "Heizk��rper + Fu��bodenheizung", "Nachtspeicherofen", "Sonstiges"
+"typeOfHeating" : "Heizk��rper + Fu��bodenheizung" ,
+// Optional, Recommended for discovery. M��gliche Werte: "Unterm Dach", "Im Keller", "Im EG", "1.OG", "Dachgeschoss", "Obergeschoss", "Keller", "Erdgeschoss"
+"locationHeating" : "Im Keller" .
+// Needs to be provided if immoType is "Wohnung". Possible Values: "Yes", "No"
+"apartmentHeatingSystem" : "No"
+} ,
+"hotWater" : {
+// Number
+"numberOfBathtubs" : 1 ,
+// Number
+"numberOfShowers" : 2 ,
+// M��gliche Werte: "Duschkopf", "Raindance Duschkopf", "Wasserfall-Dusche"
+"typeOfShowers" : "Wasserfall-Dusche"
+}
+} ,
+"heatingSystem" : {
+// Optional, Recommended for discovery. Number
+"consumption" : 45000 ,
+// Optional, Recommended for discovery. M��gliche Werte: "Liter (l)", "Kilowattstunden (kWh)"
+"consumptionUnit" : "Kilowattstunden (kWh)" ,
+// Optional, Recommended for discovery. M��gliche Werte: "Fernw��rme", "Gasetagenheizung", "Kohle", "Heiz��l", "W��rmepumpe", "Erdgas", "Fl��ssiggas", "Pellet-/Holzheizung", "Sonstiges"
+"systemType" : "Erdgas" ,
+// Number > 1500 sein
+"constructionYearHeatingSystem" : 1995 ,
+// String
+"constructionYearHeatingSystemString" : "vor 1995" ,
+// String
+"model" : "" ,
+// Recommended for selling. Boolean: true, false
+"floorHeatingConnectedToReturnPipe" : false ,
+// Recommended for selling. Boolean: true, false
+"floorHeatingOwnHeatingCircuit" : true ,
+// Recommended for selling. Boolean: true, false
+"floorHeatingOnlyInSmallRooms" : false ,
+// Recommended for selling. Number
+"numberOfFloorHeatingDistributors" : 2 ,
+// Recommended for selling. Number
+"numberOfRadiators" : 10 ,
+// Recommended for selling. Boolean: true, false
+"domesticHotWaterByHeatpump" : true ,
+// Recommended for selling. M��gliche Werte: "no", "unknown", "yes_but_inactive", "yes_and_active"
+"domesticHotWaterCirculationPump" : "yes_and_active" ,
+// Recommended for selling. M��gliche Werte: "no", "unknown", "yes", "water_filter_and_pressure_reducer"
+"domestic_water_station" : "yes"
+} ,
+"project" : {
+// Recommended for discovery. M��gliche Werte: "Sofort", "1-3 Monate", "3-6 Monate", ">6 Monate"
+"timeline" : "Sofort" ,
+// Recommended for selling. Optional household income. Possible values "more_than_40k_gross", "less_than_40k_gross", "no_answer"
+"householdIncome" : "more_than_40k_gross" ,
+// Recommended for selling. M��gliche Werte: "Vamo", "Kunde", "Kein Fundament notwendig"
+"statusOfFoundationConstruction" : "Vamo" ,
+// String f��r zus��tzliche Informationen vom Lead-Provider
+"infosLeadsource" : "" ,
+// Recommended for discovery. Boolean, if the customer wants the whole heating system replaced
+"fullReplacementOfHeatingSystemPlanned" : true ,
+// Recommended for selling. M��gliche Werte: "oil_tank_plastic_up_to_5000l", "oil_tank_plastic_more_than_5000l", "oil_tank_steel_up_to_5000l", "oil_tank_steel_more_than_5000l", "heatpump", "liquid_gas_tank"
+"additionalDisposal" : [ ] ,
+// Recommended for selling. Boolean. Wird nur validiert wenn "building.buildingInformation.hasSolarThermalSystem" true ist
+"shouldKeepSolarThermalSystem" : true ,
+"pictures" : {
+// Recommended for selling. Object Array (URLs zu Bildern). Public oder Signed URL erforderlich.
+"outdoorUnitLocation" : [
+{ "url" : "https://example.com/outdoor.jpg" }
+] ,
+// Recommended for selling. Object Array (URLs zu Bildern). Public oder Signed URL erforderlich.
+"outdoorUnitLocationWithArea" : [ ] ,
+// Recommended for selling. Object Array (URLs zu Bildern). Public oder Signed URL erforderlich.
+"heatingRoom" : [ ] ,
+// Recommended for selling. Object Array (URLs zu Bildern). Public oder Signed URL erforderlich.
+"meterClosetWithDoorOpen" : [ ] ,
+// Recommended for selling. Object Array (URLs zu Bildern). Public oder Signed URL erforderlich.
+"meterClosetSlsSwitchDetailed" : [ ] ,
+// Recommended for selling. Object Array (URLs zu Bildern). Public oder Signed URL erforderlich.
+"floorHeatingDistributionWithDoorOpen" : [ ]
+}
+}
+}
+��� Output and Data Structures
+
+Case HTTP Status Code Body Description Created 201 LeadCreationResult JSON Object The Lead was accepted and entered into our system. Parameter Error 400 ErrorResponse JSON Object Illegal Method 405 Method not allowed Conflict 409 ErrorResponse JSON Object The lead will not be accepted because the lead already exists or for business reasons (e.g. not feasible). The supplied data was well understood and sufficient but didn't meet the business requirements. LeadCreationResult JSON Object
+
+Field Type Required Comment leadStage string yes The stage of the lead depending on the data provided.
+
+qualification If the lead was accepted but contact info or technical feasibility could not be checked (e.g. because of missing fields)
+discovery if the lead was accepted and is considered feasible. However data is missing to create an offer automatically
+selling if the lead was accepted and contained all required information in order to create an offer. dataAcquisitionLink String Only if leadStage ��� selling A link that takes the lead to an online form where they can submit the missing information from DA1-3. So they can advance to the selling stage.
+
+If the lead is already in stage selling the link will be empty. appointmentBookingLink String Only if leadStage == selling A link that takes a lead where they can book an appointment with Vamo.
+
+If the lead is not in stage selling the link will be empty. ErrorResponse JSON Object
+
+JSON Object describing the error: Field Type Required Comment reason string yes A human readable string describing the error in more detail.
+
+Example: ���Validation Error��� or ���Already Exists��� issues List of String Example:
+["field1 is not a number","field2 must not be null"] Examples
+
+Example 1 - Minimal Payload
+
+Input
+
+{
+"version" : "1.2.0" ,
+"contact" : {
+"contactInformation" : {
+"firstName" : "FirstName" ,
+"lastName" : "LastName" ,
+"phone" : "+49 00000000000" ,
+"email" : "email@example.com"
+}
+}
+}
+��� Output
+
+{
+"leadStage" : "qualification" ,
+"dataAcquisitionLink" : "https://www.vamo-energy.com/rechner..." ,
+"appointmentBookingLink" : null
+}
+��� Example 2 - Success qualification
+
+Create a new Lead. Input
+
+{
+"version" : "1.2.0" ,
+"id" : "<ID>" ,
+"contact" : {
+"contactInformation" : {
+"firstName" : "FirstName" ,
+"lastName" : "LastName" ,
+"phone" : "+49 00000000000" ,
+"email" : "email@example.com"
+} ,
+"address" : {
+"street" : "Hohenzollernring 22-24" ,
+"city" : "K��ln" ,
+"postalCode" : "50672" ,
+"countryCode" : "DE"
+}
+} ,
+"building" : {
+"address" : {
+"street" : "Hohenzollernring 22-24" ,
+"city" : "K��ln" ,
+"postalcode" : "50672" ,
+"countryCode" : "DE"
+} ,
+"buildingInformation" : {
+"immoType" : "Einfamilienhaus / Zweifamilienhaus" ,
+"constructionYearString" : "2001-2010" ,
+"heritageProtection" : "Nein" ,
+"boilerRoomSize" : "mehr als 4 qm" ,
+"installationLocationCeilingHeight" : "180 - 199 cm" ,
+"widthPathway" : "Ja" ,
+"heightPathway" : "Ja" ,
+"personsHousehold" : 4
+} ,
+"ownershipRelationships" : {
+"type" : "one_owner"
+} ,
+"energyRelevantInformation" : {
+"heatedArea" : 185 ,
+"locationHeating" : "Im Keller"
+}
+} ,
+"heatingSystem" : {
+"systemType" : "Heiz��l" ,
+"consumption" : 9000 ,
+"consumptionUnit" : "Kilowattstunden (kWh)"
+} ,
+"project" : {
+"timeline" : "3-6 Monate"
+}
+}
+��� Output
+
+{
+"leadStage" : "qualification" ,
+"dataAcquisitionLink" : "https://www.vamo-energy.com/digi-vot..." ,
+"appointmentBookingLink" : null
+}
+��� Example 3 - Success discovery
+
+Create a new Lead. Input
+
+{
+"version" : "1.2.0" ,
+"id" : "<ID>" ,
+"contact" : {
+"contactInformation" : {
+"firstName" : "FirstName" ,
+"lastName" : "LastName" ,
+"phone" : "+49 00000000000" ,
+"email" : "email@example.com"
+} ,
+"address" : {
+"street" : "Hohenzollernring 22-24" ,
+"city" : "K��ln" ,
+"postalCode" : "50672" ,
+"countryCode" : "DE"
+}
+} ,
+"building" : {
+"address" : {
+"street" : "Hohenzollernring 22-24" ,
+"city" : "K��ln" ,
+"postalcode" : "50672" ,
+"countryCode" : "DE"
+} ,
+"buildingInformation" : {
+"immoType" : "Einfamilienhaus / Zweifamilienhaus" ,
+"constructionYearString" : "2001-2010" ,
+"heritageProtection" : "Nein" ,
+"boilerRoomSize" : "mehr als 4 qm" ,
+"installationLocationCeilingHeight" : "180 - 199 cm" ,
+"widthPathway" : "Ja" ,
+"heightPathway" : "Ja" ,
+"personsHousehold" : 4 ,
+"livingSpace" : 195 ,
+"residentialUnits" : 1 ,
+"roomsBetweenHeatingRoomAndOutdoorUnit" : "one_room" ,
+"meterClosetLocation" : "Keller" ,
+"electricityConnectionLocation" : "Keller" ,
+"groundingType" : "grounding_spike_or_foundation" ,
+"hasSolarThermalSystem" : false
+} ,
+"ownershipRelationships" : {
+"type" : "one_owner" ,
+"ownerOccupiedHousing" : true
+} ,
+"energyRelevantInformation" : {
+"heatedArea" : 185 ,
+"typeOfHeating" : "Heizk��rper + Fu��bodenheizung" ,
+"locationHeating" : "Keller"
+}
+} ,
+"heatingSystem" : {
+"systemType" : "Erdgas" ,
+"consumption" : 9000 ,
+"consumptionUnit" : "Kilowattstunden (kWh)" ,
+"constructionYearHeatingSystem" : 1995 ,
+"floorHeatingConnectedToReturnPipe" : false ,
+"floorHeatingOwnHeatingCircuit" : true ,
+"floorHeatingOnlyInSmallRooms" : false ,
+"numberOfFloorHeatingDistributors" : 1 ,
+"numberOfRadiators" : 10 ,
+"domesticHotWaterByHeatpump" : true ,
+"domesticHotWaterCirculationPump" : "no" ,
+"domestic_water_station" : "yes"
+} ,
+"project" : {
+"timeline" : "3-6 Monate" ,
+"householdIncome" : "more_than_40k_gross" ,
+"statusOfFoundationConstruction" : "Vamo" ,
+"fullReplacementOfHeatingSystemPlanned" : true ,
+"additionalDisposal" : [ ]
+}
+}
+��� Output
+
+{
+"leadStage" : "discovery" ,
+"dataAcquisitionLink" : "https://www.vamo-energy.com/digi-vot-fotos..." ,
+"appointmentBookingLink" : null
+}
+��� Example 4 - Success selling
+
+Create a new Lead with all relevant information and pictures. The Picture URLs needs to be accessible without further authorization headers. We suggest using S3 Signed Urls with an expire duration of 1 hour. Input
+
+{
+"version" : "1.2.0" ,
+"id" : "<ID>" ,
+"contact" : {
+"contactInformation" : {
+"firstName" : "FirstName" ,
+"lastName" : "LastName" ,
+"phone" : "+49 00000000000" ,
+"email" : "email@example.com"
+} ,
+"address" : {
+"street" : "Hohenzollernring 22-24" ,
+"city" : "K��ln" ,
+"postalCode" : "50672" ,
+"countryCode" : "DE"
+}
+} ,
+"building" : {
+"address" : {
+"street" : "Hohenzollernring 22-24" ,
+"city" : "K��ln" ,
+"postalcode" : "50672" ,
+"countryCode" : "DE"
+} ,
+"buildingInformation" : {
+"immoType" : "Einfamilienhaus / Zweifamilienhaus" ,
+"constructionYearString" : "2001-2010" ,
+"heritageProtection" : "Nein" ,
+"boilerRoomSize" : "mehr als 4 qm" ,
+"installationLocationCeilingHeight" : "180 - 199 cm" ,
+"widthPathway" : "Ja" ,
+"heightPathway" : "Ja" ,
+"personsHousehold" : 4 ,
+"livingSpace" : 195 ,
+"residentialUnits" : 1 ,
+"roomsBetweenHeatingRoomAndOutdoorUnit" : "one_room" ,
+"meterClosetLocation" : "Keller" ,
+"electricityConnectionLocation" : "Keller" ,
+"groundingType" : "grounding_spike_or_foundation" ,
+"hasSolarThermalSystem" : false
+} ,
+"ownershipRelationships" : {
+"type" : "one_owner" ,
+"ownerOccupiedHousing" : true
+} ,
+"energyRelevantInformation" : {
+"heatedArea" : 185 ,
+"typeOfHeating" : "Heizk��rper + Fu��bodenheizung" ,
+"locationHeating" : "Keller"
+}
+} ,
+"heatingSystem" : {
+"systemType" : "Erdgas" ,
+"consumption" : 9000 ,
+"consumptionUnit" : "Kilowattstunden (kWh)" ,
+"constructionYearHeatingSystem" : 1995 ,
+"floorHeatingConnectedToReturnPipe" : false ,
+"floorHeatingOwnHeatingCircuit" : true ,
+"floorHeatingOnlyInSmallRooms" : false ,
+"numberOfFloorHeatingDistributors" : 1 ,
+"numberOfRadiators" : 10 ,
+"domesticHotWaterByHeatpump" : true ,
+"domesticHotWaterCirculationPump" : "no" ,
+"domestic_water_station" : "yes"
+} ,
+"project" : {
+"timeline" : "3-6 Monate" ,
+"householdIncome" : "more_than_40k_gross" ,
+"statusOfFoundationConstruction" : "Vamo" ,
+"fullReplacementOfHeatingSystemPlanned" : true ,
+"additionalDisposal" : [ ] ,
+"pictures" : {
+"outdoorUnitLocation" : [
+{
+"url" : "https://cdn.prod.website-files.com/6828462e5e374f01d8fc041f/68775af7beabbc9bfe40c557_68556944e7fa939d2fa524cc_679a37b77c0da84f2af37818_AD_4nXc1IL6IP-7XxiqA46Hw74Ulg9nZXmWovBsnwrkd_wZBVuE4noxb-MnGFzG-FWwkbzZNPNxC5dxU9M-AjRYxIer-o8tCWRev6smbg9rlZ6IypweXfK2hIBwKO85NqId3pbM4Zmw1Eg.jpeg"
+}
+] ,
+"outdoorUnitLocationWithArea" : [
+{
+"url" : "https://cdn.prod.website-files.com/6828462e5e374f01d8fc041f/68775af7beabbc9bfe40c557_68556944e7fa939d2fa524cc_679a37b77c0da84f2af37818_AD_4nXc1IL6IP-7XxiqA46Hw74Ulg9nZXmWovBsnwrkd_wZBVuE4noxb-MnGFzG-FWwkbzZNPNxC5dxU9M-AjRYxIer-o8tCWRev6smbg9rlZ6IypweXfK2hIBwKO85NqId3pbM4Zmw1Eg.jpeg"
+}
+] ,
+"heatingRoom" : [
+{
+"url" : "https://cdn.prod.website-files.com/6828462e5e374f01d8fc041f/68775af7beabbc9bfe40c557_68556944e7fa939d2fa524cc_679a37b77c0da84f2af37818_AD_4nXc1IL6IP-7XxiqA46Hw74Ulg9nZXmWovBsnwrkd_wZBVuE4noxb-MnGFzG-FWwkbzZNPNxC5dxU9M-AjRYxIer-o8tCWRev6smbg9rlZ6IypweXfK2hIBwKO85NqId3pbM4Zmw1Eg.jpeg"
+}
+] ,
+"meterClosetWithDoorOpen" : [
+{
+"url" : "https://cdn.prod.website-files.com/6828462e5e374f01d8fc041f/68775af7beabbc9bfe40c557_68556944e7fa939d2fa524cc_679a37b77c0da84f2af37818_AD_4nXc1IL6IP-7XxiqA46Hw74Ulg9nZXmWovBsnwrkd_wZBVuE4noxb-MnGFzG-FWwkbzZNPNxC5dxU9M-AjRYxIer-o8tCWRev6smbg9rlZ6IypweXfK2hIBwKO85NqId3pbM4Zmw1Eg.jpeg"
+}
+] ,
+"meterClosetSlsSwitchDetailed" : [
+{
+"url" : "https://cdn.prod.website-files.com/6828462e5e374f01d8fc041f/68775af7beabbc9bfe40c557_68556944e7fa939d2fa524cc_679a37b77c0da84f2af37818_AD_4nXc1IL6IP-7XxiqA46Hw74Ulg9nZXmWovBsnwrkd_wZBVuE4noxb-MnGFzG-FWwkbzZNPNxC5dxU9M-AjRYxIer-o8tCWRev6smbg9rlZ6IypweXfK2hIBwKO85NqId3pbM4Zmw1Eg.jpeg"
+}
+] ,
+"floorHeatingDistributionWithDoorOpen" : [
+{
+"url" : "https://cdn.prod.website-files.com/6828462e5e374f01d8fc041f/68775af7beabbc9bfe40c557_68556944e7fa939d2fa524cc_679a37b77c0da84f2af37818_AD_4nXc1IL6IP-7XxiqA46Hw74Ulg9nZXmWovBsnwrkd_wZBVuE4noxb-MnGFzG-FWwkbzZNPNxC5dxU9M-AjRYxIer-o8tCWRev6smbg9rlZ6IypweXfK2hIBwKO85NqId3pbM4Zmw1Eg.jpeg"
+}
+]
+}
+}
+}
+��� Output
+
+{
+"leadStage" : "selling" ,
+"dataAcquisitionLink" : null ,
+"appointmentBookingLink" : "https://www.vamo-energy.com/appointment-booking-link..."
+}
+��� Configurator Flow Chart
+
+DA 1
+
+Here is a simplified version of our configurator as it appears on our website. It illustrates the sequence of questions and answers that guide users through the Lead Generation process. In was f��r einem Geb��ude wohnen Sie?
+JSON field: immoType
+
+Anzahl der Wohneinheiten
+JSON field: residentialUnits
+
+Liegt die Wohnung im EG und besitzt ein eigenes Heizsystem Gasetagenheizung o.��.?
+no JSON field
+
+Info: F��r diese Art von Kunden k��nnen wir derzeit keine Angebote machen.
+Sie werden in unsere Warteliste aufgenommen.
+
+Selbstgenutztes Wohneigentum?
+JSON field: ownerOccupiedHousing
+
+Womit heizen Sie aktuell?
+JSON field: systemType
+
+Bitte geben Sie Ihren aktuellen Jahresverbrauch in kWh an
+JSON field: consumption and consumptionUnit = Kilowattstunden kWh
+
+Bitte geben Sie Ihren aktuellen Jahresverbrauch in Litern an
+JSON field: consumption and consumptionUnit = Liter l
+
+Wie alt ist Ihre aktuelle Heizung?
+JSON field: constructionYearHeatingSystem or constructionYearHeatingSystemString
+
+��ber welche Art/System beheizen Sie Ihre R��ume?
+JSON field: typeOfHeating
+
+Auf welcher Etage befindet sich dein derzeitiger Heizungsraum?
+JSON field: locationHeating
+
+Wie gro�� ist die nutzbare Fl��che f��r die Heizanlage in deinem Heizraum?
+JSON field: boilerSizeRoom
+
+Info: F��r diese Art von Kunden k��nnen wir derzeit keine Angebote machen.
+Sie werden in unsere Warteliste aufgenommen.
+
+Welche H��he hat dein Heizungsraum?
+JSON field: installationLocationCeilingHeight
+
+Ist der Laufweg zu deinem Heizungsraum an jeder Stelle mindestens 65cm breit?
+JSON field: widthPathway
+
+Ist der Laufweg zu deinem Heizungsraum an jeder Stelle mindestens 180 cm hoch?
+JSON field: heightPathway
+
+Wann sollen wir Ihre Heizung tauschen?
+JSON field: timeline
+
+Kontaktformular
+JSON field: address
+
+Flow Ende - Post Request to API
+
+Einfamilienhaus / Zweifamilienhaus
+
+Doppelhaus / Reihenhaus
+
+Wohnung
+
+Sonstiges
+
+Ja
+
+Nein
+
+All Options
+
+All Options
+
+Erdgas
+
+Heiz��l
+
+Sonstiges
+
+All Options
+
+All Options
+
+All Options
+
+All Options
+
+Keller
+
+Erdgeschoss
+
+Obergeschoss
+
+Dachgeschoss
+
+weniger als 4 qm
+
+mehr als 4 qm
+
+niedriger als 180 cm
+
+180 - 199 cm
+
+h��her als 199 cm
+
+Ja
+
+Nein
+
+Ja
+
+Nein
+
+All Options
+
+All Options
+
+��� Version History
+
+Synced Block - ONLY EDIT in
+
+Vamo Public APIs Version Status Change Notes Lead Creation v1.2.0 Active Moved v1.2.0 from DRAFT to Active Lead Creation v1.2.0 DRAFT ���� New: Added new Properties for full lead qualification and picture upload to enable creating a lead directly in selling state. Added response types Lead Creation v1.1.0 Active ���� New: Added new properties in building information (optional):
+boilerRoomSize
+heatingRoomCeilingHeight
+widthPathway
+heightPathway
+
+������ Changed: flow chart with 4 additional feasibility questions
+
+������  Changed: removed fields pvSystemAvailable , typeOfInsulation , glazing ��� if submitted, we will ignore them Lead Creation v1.0.2 Deprecated ������ Changed: Removed options Heiz��l from heatingSystem.systemType . Instead we suggest to map it as follows
+- ��l ��� Heiz��l
+
+������ Changed: Updated cURL example to transmit Authorization header
+
+������  Changed: Updated flow chart to clarify how unfeasible Leads are being processed and added to the waiting list. Lead Creation v1.0.1 Deprecated ���� New: Flow Chart for Lead Creation
+Added Flow Chart for suggested User Journey
+
+����   New: Added id property
+
+������ Changed: Removed options Heiz��l and Gas from heatingSystem.systemType . Instead we suggest to map them as follows
+- Heiz��l ��� ��l
+- Gas ��� Erdgas Lead Creation v1.0.0 Deactivated Initial Release

@@ -1,0 +1,19 @@
+{
+  "name": "vamo-heatos",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "npm-run-all2 --parallel dev:web dev:api",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "dependencies": {
+    "@vamo-heatos/shared": "workspace:^"
+  },
+  "devDependencies": {
+    "npm-run-all2": "^8.0.4"
+  }
+}
