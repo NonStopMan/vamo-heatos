@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import TheWelcome from '../components/TheWelcome.vue'
+import LeadFormView from './LeadFormView.vue'
 </script>
 
 <template>
-  <main>
-    <TheWelcome />
-  </main>
+  <LeadFormView />
 </template>

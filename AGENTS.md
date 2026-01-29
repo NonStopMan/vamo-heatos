@@ -91,6 +91,7 @@ If deviating from this stack:
 - Prefer explicit code over magic abstractions
 - Add comments only where intent is non-obvious
 - Avoid speculative features not requested
+- For any new feature or issue implementation, add at least unit test cases covering the change
 
 If uncertain:
 
