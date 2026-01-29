@@ -16,7 +16,7 @@ type LeadPayload = {
       mobile?: string
       email: string
     }
-    address?: {
+    address: {
       street?: string
       city?: string
       postalCode?: string
@@ -359,7 +359,10 @@ select {
   padding: 0.7rem 0.9rem;
   font-size: 0.95rem;
   background: rgba(255, 255, 255, 0.9);
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
 }
 
 input:focus,
@@ -385,7 +388,10 @@ button {
   border-radius: 999px;
   cursor: pointer;
   box-shadow: 0 14px 20px rgba(15, 118, 110, 0.25);
-  transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
 }
 
 button:disabled {
