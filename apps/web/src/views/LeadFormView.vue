@@ -28,25 +28,25 @@ type LeadPayload = {
       countryCode?: string
     }
   }
-  building?: {
-    buildingInformation?: {
+  building: {
+    buildingInformation: {
       residentialUnits?: number | ''
       boilerRoomSize?: string
       installationLocationCeilingHeight?: string
       widthPathway?: string
       heightPathway?: string
     }
-    energyRelevantInformation?: {
+    energyRelevantInformation: {
       typeOfHeating?: string
       locationHeating?: string
     }
   }
-  heatingSystem?: {
+  heatingSystem: {
     consumption?: number | ''
     consumptionUnit?: string
     systemType?: string
   }
-  project?: {
+  project: {
     timeline?: string
     fullReplacementOfHeatingSystemPlanned?: boolean | ''
     pictures?: PictureGroup

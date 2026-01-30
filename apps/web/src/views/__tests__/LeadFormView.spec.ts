@@ -118,8 +118,10 @@ describe('LeadFormView', () => {
     await flushPromises()
 
     expect(fetchSpy).toHaveBeenCalled()
-    const [, request] = fetchSpy.mock.calls[0]
-    const body = JSON.parse((request as RequestInit).body as string)
+    const firstCall = fetchSpy.mock.calls[0]
+    expect(firstCall).toBeDefined()
+    const request = firstCall?.[1] as RequestInit
+    const body = JSON.parse(request.body as string)
 
     expect(body.building.buildingInformation.residentialUnits).toBe(2)
     expect(body.building.buildingInformation.boilerRoomSize).toBe('mehr als 4 qm')
