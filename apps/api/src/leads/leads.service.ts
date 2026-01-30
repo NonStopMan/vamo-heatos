@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { LeadCreateDto } from './dto';
 import { LEADS_REPOSITORY } from './leads.repository';
 import type { LeadsRepository } from './leads.repository';
@@ -6,12 +6,20 @@ import { LeadCreationResult } from './leads.types';
 
 @Injectable()
 export class LeadsService {
-  constructor(@Inject(LEADS_REPOSITORY) private readonly repository: LeadsRepository) {}
+  private readonly logger = new Logger(LeadsService.name);
+
+  constructor(
+    @Inject(LEADS_REPOSITORY) private readonly repository: LeadsRepository,
+  ) {}
 
   async createLead(payload: LeadCreateDto): Promise<LeadCreationResult> {
+    let leadId = payload.id ?? 'unknown';
+    this.logger.log(`Creating lead (leadId=${leadId})`);
+
     if (payload.id) {
       const existing = await this.repository.findByExternalId(payload.id);
       if (existing) {
+        this.logger.warn(`Lead already exists (leadId=${payload.id})`);
         throw new ConflictException({
           reason: 'Already Exists',
           issues: ['lead already exists'],
@@ -19,9 +27,20 @@ export class LeadsService {
       }
     }
 
-    await this.repository.createLead(payload.id, payload as unknown as Record<string, unknown>);
+    try {
+      const createdLead = await this.repository.createLead(
+        payload.id,
+        payload as unknown as Record<string, unknown>,
+      );
+      leadId = createdLead.id;
+    } catch (error) {
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to persist lead (leadId=${leadId})`, stack);
+      throw error;
+    }
 
     const leadStage = this.calculateLeadStage(payload);
+    this.logger.log(`Lead created (leadId=${leadId}, stage=${leadStage})`);
     return {
       leadStage,
       dataAcquisitionLink:
@@ -31,14 +50,18 @@ export class LeadsService {
     };
   }
 
-  private calculateLeadStage(payload: LeadCreateDto): LeadCreationResult['leadStage'] {
+  private calculateLeadStage(
+    payload: LeadCreateDto,
+  ): LeadCreationResult['leadStage'] {
     const hasDiscoveryData =
       !!payload.building?.buildingInformation?.immoType &&
       payload.building.buildingInformation.livingSpace !== undefined &&
       payload.building.buildingInformation.residentialUnits !== undefined &&
       !!payload.building.buildingInformation.groundingType &&
-      payload.building.buildingInformation.hasSolarThermalSystem !== undefined &&
-      payload.building.ownershipRelationships?.ownerOccupiedHousing !== undefined &&
+      payload.building.buildingInformation.hasSolarThermalSystem !==
+        undefined &&
+      payload.building.ownershipRelationships?.ownerOccupiedHousing !==
+        undefined &&
       !!payload.heatingSystem?.systemType &&
       payload.heatingSystem.consumption !== undefined &&
       !!payload.heatingSystem.consumptionUnit &&
@@ -54,10 +77,10 @@ export class LeadsService {
       payload.project.statusOfFoundationConstruction !== undefined &&
       payload.project.additionalDisposal !== undefined &&
       (payload.project.shouldKeepSolarThermalSystem !== undefined ||
-        payload.building?.buildingInformation?.hasSolarThermalSystem === false) &&
+        payload.building?.buildingInformation?.hasSolarThermalSystem ===
+          false) &&
       !!payload.project.pictures?.outdoorUnitLocation?.length;
 
     return hasSellingData ? 'selling' : 'discovery';
   }
-
 }

@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   ValidationArguments,
   ValidatorConstraint,
@@ -41,9 +42,19 @@ const getConsistencyIssues = (payload: LeadCreateDto): string[] => {
 
 @ValidatorConstraint({ name: 'LeadCreateConsistency', async: false })
 export class LeadCreateConsistencyRule implements ValidatorConstraintInterface {
+  private readonly logger = new Logger(LeadCreateConsistencyRule.name);
+
   validate(_value: unknown, args?: ValidationArguments): boolean {
     const payload = (args?.object ?? {}) as LeadCreateDto;
-    return getConsistencyIssues(payload).length === 0;
+    const issues = getConsistencyIssues(payload);
+    if (issues.length > 0) {
+      const leadId = payload.id ?? 'unknown';
+      this.logger.warn(
+        `Lead validation failed (leadId=${leadId}): ${issues.join(', ')}`,
+      );
+      return false;
+    }
+    return true;
   }
 
   defaultMessage(args?: ValidationArguments): string {

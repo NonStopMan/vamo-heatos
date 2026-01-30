@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import { resolve, sep } from 'path';
 import { config as loadDotEnv } from 'dotenv';
 
-const defaultEnvPaths = (): string[] => {
+export const defaultEnvPaths = (): string[] => {
   const cwd = process.cwd();
   const isApiCwd = cwd.endsWith(`${sep}apps${sep}api`);
   return [

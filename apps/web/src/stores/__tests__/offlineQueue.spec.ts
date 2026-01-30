@@ -8,11 +8,16 @@ describe('offlineQueue', () => {
 
   it('enqueues and flushes items', async () => {
     enqueueLead({ version: '1.2.0' })
-    enqueueLead({ version: '1.2.0', id: 'a' })
+    enqueueLead({ version: '1.2.0', id: 'a' }, { photoKeys: ['a', 'b'] })
 
     expect(getQueueSize()).toBe(2)
 
-    const remaining = await flushQueue(async () => true)
+    const remaining = await flushQueue(async (_payload, attachments) => {
+      if (attachments?.photoKeys?.length) {
+        expect(attachments.photoKeys).toEqual(['a', 'b'])
+      }
+      return true
+    })
     expect(remaining).toBe(0)
     expect(getQueueSize()).toBe(0)
   })

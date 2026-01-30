@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, Logger } from '@nestjs/common';
 import {
   AdditionalDisposalItem,
   ConsumptionUnit,
@@ -35,11 +35,17 @@ describe('LeadsService', () => {
   };
 
   beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     repository.findByExternalId.mockReset();
     repository.createLead.mockReset();
     repository.findNextPending.mockReset();
     repository.markSynced.mockReset();
     repository.markFailed.mockReset();
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('creates a lead and returns qualification by default', async () => {
@@ -58,6 +64,16 @@ describe('LeadsService', () => {
     await expect(
       service.createLead({ ...buildMinimalPayload(), id: 'existing' }),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(Logger.prototype.warn).toHaveBeenCalled();
+  });
+
+  it('logs error when persistence fails', async () => {
+    repository.findByExternalId.mockResolvedValue(null);
+    repository.createLead.mockRejectedValue(new Error('db down'));
+    const service = new LeadsService(repository);
+
+    await expect(service.createLead(buildMinimalPayload())).rejects.toThrow('db down');
+    expect(Logger.prototype.error).toHaveBeenCalled();
   });
 
   it('returns discovery when discovery fields are present', async () => {

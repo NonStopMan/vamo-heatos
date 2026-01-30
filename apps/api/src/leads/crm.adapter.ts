@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { importPKCS8, SignJWT } from 'jose';
 import { LeadCreateDto } from './dto';
 
@@ -8,10 +9,8 @@ export interface CrmAdapter {
   forwardLead(payload: LeadCreateDto): Promise<void>;
 }
 
-export const isSalesforceEnabled = (
-  env: NodeJS.ProcessEnv = process.env,
-): boolean => {
-  return (env.SALESFORCE_ENABLED ?? '').toLowerCase() === 'true';
+export const isSalesforceEnabled = (config: ConfigService): boolean => {
+  return (config.get<string>('SALESFORCE_ENABLED') ?? '').toLowerCase() === 'true';
 };
 
 export class NoopCrmAdapter implements CrmAdapter {
@@ -32,8 +31,10 @@ type SalesforceToken = {
 export class SalesforceAuthClient {
   private token?: SalesforceToken;
 
+  constructor(private readonly config: ConfigService) {}
+
   private loadPrivateKey(): string {
-    const inlineKey = process.env.SALESFORCE_JWT_PRIVATE_KEY;
+    const inlineKey = this.config.get<string>('SALESFORCE_JWT_PRIVATE_KEY');
     if (inlineKey && inlineKey.trim().length > 0) {
       return inlineKey.replace(/\\n/g, '\n');
     }
@@ -47,9 +48,9 @@ export class SalesforceAuthClient {
     }
 
     const loginUrl =
-      process.env.SALESFORCE_LOGIN_URL ?? 'https://login.salesforce.com';
-    const clientId = process.env.SALESFORCE_CLIENT_ID ?? '';
-    const username = process.env.SALESFORCE_USERNAME ?? '';
+      this.config.get<string>('SALESFORCE_LOGIN_URL') ?? 'https://login.salesforce.com';
+    const clientId = this.config.get<string>('SALESFORCE_CLIENT_ID') ?? '';
+    const username = this.config.get<string>('SALESFORCE_USERNAME') ?? '';
     const privateKey = this.loadPrivateKey();
     const now = Math.floor(Date.now() / 1000);
     const key = await importPKCS8(privateKey, 'RS256');
@@ -99,11 +100,14 @@ export class SalesforceAuthClient {
 
 @Injectable()
 export class SalesforceCrmAdapter implements CrmAdapter {
-  constructor(private readonly authClient: SalesforceAuthClient) {}
+  constructor(
+    private readonly authClient: SalesforceAuthClient,
+    private readonly config: ConfigService,
+  ) {}
 
   async forwardLead(payload: LeadCreateDto): Promise<void> {
     const token = await this.authClient.getToken();
-    const apiVersion = process.env.SALESFORCE_API_VERSION ?? 'v61.0';
+    const apiVersion = this.config.get<string>('SALESFORCE_API_VERSION') ?? 'v61.0';
     const url = `${token.instanceUrl}/services/data/${apiVersion}/sobjects/Lead/`;
 
     const leadPayload = this.mapLead(payload);
@@ -148,7 +152,7 @@ export class SalesforceCrmAdapter implements CrmAdapter {
 
   private duplicateRuleHeader(): Record<string, string> {
     const allowDuplicates =
-      (process.env.SALESFORCE_ALLOW_DUPLICATES ?? '').toLowerCase() === 'true';
+      (this.config.get<string>('SALESFORCE_ALLOW_DUPLICATES') ?? '').toLowerCase() === 'true';
     if (!allowDuplicates) {
       return {};
     }

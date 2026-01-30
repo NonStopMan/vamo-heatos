@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { enqueueLead, flushQueue, getQueueSize } from '../stores/offlineQueue'
+import {
+  deleteOfflinePhotos,
+  getOfflinePhotos,
+  saveOfflinePhotos,
+} from '../stores/offlinePhotos'
 
 type PictureGroup = {
   outdoorUnitLocation?: { url: string }[]
@@ -23,7 +28,27 @@ type LeadPayload = {
       countryCode?: string
     }
   }
+  building?: {
+    buildingInformation?: {
+      residentialUnits?: number | ''
+      boilerRoomSize?: string
+      installationLocationCeilingHeight?: string
+      widthPathway?: string
+      heightPathway?: string
+    }
+    energyRelevantInformation?: {
+      typeOfHeating?: string
+      locationHeating?: string
+    }
+  }
+  heatingSystem?: {
+    consumption?: number | ''
+    consumptionUnit?: string
+    systemType?: string
+  }
   project?: {
+    timeline?: string
+    fullReplacementOfHeatingSystemPlanned?: boolean | ''
     pictures?: PictureGroup
   }
 }
@@ -47,7 +72,27 @@ const form = reactive<LeadPayload>({
       countryCode: '',
     },
   },
+  building: {
+    buildingInformation: {
+      residentialUnits: '',
+      boilerRoomSize: '',
+      installationLocationCeilingHeight: '',
+      widthPathway: '',
+      heightPathway: '',
+    },
+    energyRelevantInformation: {
+      typeOfHeating: '',
+      locationHeating: '',
+    },
+  },
+  heatingSystem: {
+    consumption: '',
+    consumptionUnit: '',
+    systemType: '',
+  },
   project: {
+    timeline: '',
+    fullReplacementOfHeatingSystemPlanned: '',
     pictures: {
       outdoorUnitLocation: [],
     },
@@ -55,11 +100,18 @@ const form = reactive<LeadPayload>({
 })
 
 const selectedFiles = ref<File[]>([])
+const fileInput = ref<HTMLInputElement | null>(null)
 const errors = reactive<Record<string, string>>({})
 const submitting = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
 const queueSize = ref(getQueueSize())
+
+type Toast = {
+  id: string
+  type: 'success' | 'error'
+  message: string
+}
+
+const toasts = ref<Toast[]>([])
 
 const countryOptions = [
   'Germany',
@@ -75,10 +127,57 @@ const countryOptions = [
   'Other',
 ]
 
-const hasErrors = computed(() => Object.keys(errors).length > 0)
+const boilerRoomSizeOptions = ['weniger als 4qm', 'mehr als 4 qm']
+const ceilingHeightOptions = ['niedriger als 180 cm', '180 - 199 cm', 'höher als 199 cm']
+const yesNoOptions = ['Ja', 'Nein']
+const heatingTypeOptions = [
+  'Heizkörper',
+  'Fußbodenheizung',
+  'Heizkörper + Fußbodenheizung',
+  'Nachtspeicherofen',
+  'Sonstiges',
+]
+const heatingLocationOptions = [
+  'Unterm Dach',
+  'Im Keller',
+  'Im EG',
+  '1.OG',
+  'Dachgeschoss',
+  'Obergeschoss',
+  'Keller',
+  'Erdgeschoss',
+]
+const consumptionUnitOptions = ['Liter (l)', 'Kilowattstunden (kWh)']
+const systemTypeOptions = [
+  'Fernwärme',
+  'Gasetagenheizung',
+  'Kohle',
+  'Heizöl',
+  'Wärmepumpe',
+  'Erdgas',
+  'Flüssiggas',
+  'Pellet-/Holzheizung',
+  'Sonstiges',
+]
+const timelineOptions = ['Sofort', '1-3 Monate', '3-6 Monate', '>6 Monate']
+const yesNoBooleanOptions = [
+  { label: 'Ja', value: true },
+  { label: 'Nein', value: false },
+]
 
-const validate = () => {
+const hasErrors = computed(() => Object.keys(errors).length > 0)
+const steps = ['Contact', 'Address', 'Discovery', 'Photos']
+const currentStep = ref(0)
+const isFirstStep = computed(() => currentStep.value === 0)
+const isLastStep = computed(() => currentStep.value === steps.length - 1)
+
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+const clearErrors = () => {
   Object.keys(errors).forEach((key) => delete errors[key])
+}
+
+const validateContact = () => {
   if (!form.contact.contactInformation.firstName.trim()) {
     errors.firstName = 'First name is required'
   }
@@ -90,20 +189,95 @@ const validate = () => {
   }
   if (!form.contact.contactInformation.email.trim()) {
     errors.email = 'Email is required'
+  } else if (!isValidEmail(form.contact.contactInformation.email)) {
+    errors.email = 'Email must be valid'
   }
   return !hasErrors.value
 }
 
-const resetMessages = () => {
-  successMessage.value = ''
-  errorMessage.value = ''
+const validateDiscovery = () => {
+  if (
+    form.building?.buildingInformation?.residentialUnits !== '' &&
+    (typeof form.building?.buildingInformation?.residentialUnits !== 'number' ||
+      Number.isNaN(form.building?.buildingInformation?.residentialUnits) ||
+      form.building?.buildingInformation?.residentialUnits < 0)
+  ) {
+    errors.residentialUnits = 'Residential units must be 0 or more'
+  }
+  if (
+    form.heatingSystem?.consumption !== '' &&
+    (typeof form.heatingSystem?.consumption !== 'number' ||
+      Number.isNaN(form.heatingSystem?.consumption) ||
+      form.heatingSystem?.consumption < 0)
+  ) {
+    errors.consumption = 'Consumption must be 0 or more'
+  }
+  return !hasErrors.value
 }
 
-const uploadPictures = async (): Promise<string[]> => {
-  if (!selectedFiles.value.length) return []
+const validateAll = () => {
+  clearErrors()
+  const contactValid = validateContact()
+  const discoveryValid = validateDiscovery()
+  return contactValid && discoveryValid
+}
+
+const clearToasts = () => {
+  toasts.value = []
+}
+
+const addToast = (type: Toast['type'], message: string) => {
+  const id = `${Date.now()}-${Math.round(Math.random() * 1e6)}`
+  toasts.value.push({ id, type, message })
+  window.setTimeout(() => {
+    toasts.value = toasts.value.filter((toast) => toast.id !== id)
+  }, 4500)
+}
+
+const resetForm = () => {
+  form.contact.contactInformation.firstName = ''
+  form.contact.contactInformation.lastName = ''
+  form.contact.contactInformation.phone = ''
+  form.contact.contactInformation.mobile = ''
+  form.contact.contactInformation.email = ''
+  form.contact.address.street = ''
+  form.contact.address.city = ''
+  form.contact.address.postalCode = ''
+  form.contact.address.countryCode = ''
+  form.building = {
+    buildingInformation: {
+      residentialUnits: '',
+      boilerRoomSize: '',
+      installationLocationCeilingHeight: '',
+      widthPathway: '',
+      heightPathway: '',
+    },
+    energyRelevantInformation: {
+      typeOfHeating: '',
+      locationHeating: '',
+    },
+  }
+  form.heatingSystem = {
+    consumption: '',
+    consumptionUnit: '',
+    systemType: '',
+  }
+  form.project = { pictures: { outdoorUnitLocation: [] } }
+  form.project.timeline = ''
+  form.project.fullReplacementOfHeatingSystemPlanned = ''
+  selectedFiles.value = []
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+  Object.keys(errors).forEach((key) => delete errors[key])
+  currentStep.value = 0
+}
+
+const uploadPictures = async (files: File[]): Promise<string[]> => {
+  if (!files.length) return []
 
   const formData = new FormData()
-  selectedFiles.value.forEach((file) => formData.append('files', file))
+  files.forEach((file) => formData.append('files', file))
 
   const response = await fetch(`${apiUrl}/leads/uploads`, {
     method: 'POST',
@@ -129,28 +303,35 @@ const submitPayload = async (payload: LeadPayload): Promise<boolean> => {
 
   if (!response.ok) {
     const payloadBody = await response.json().catch(() => null)
-    errorMessage.value = payloadBody?.reason ?? 'Failed to submit lead'
+    addToast('error', payloadBody?.reason ?? 'Failed to submit lead')
     return false
   }
   return true
 }
 
 const submit = async () => {
-  resetMessages()
-  if (!validate()) {
+  clearToasts()
+  if (!validateAll()) {
+    if (errors.firstName || errors.lastName || errors.phone || errors.email) {
+      currentStep.value = 0
+    } else if (errors.residentialUnits || errors.consumption) {
+      currentStep.value = 2
+    }
     return
   }
 
   submitting.value = true
   try {
     if (!navigator.onLine) {
-      enqueueLead(form)
+      const photoKeys = await saveOfflinePhotos(selectedFiles.value)
+      enqueueLead(form, { photoKeys })
       queueSize.value = getQueueSize()
-      successMessage.value = 'Saved offline. Will submit when online.'
+      addToast('success', 'Saved offline. Will submit when online.')
+      resetForm()
       return
     }
 
-    const urls = await uploadPictures()
+    const urls = await uploadPictures(selectedFiles.value)
     if (urls.length) {
       const normalized = urls.map((url) =>
         url.startsWith('http') ? url : `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`,
@@ -163,18 +344,69 @@ const submit = async () => {
 
     const ok = await submitPayload(form)
     if (ok) {
-      successMessage.value = 'Lead submitted successfully.'
+      addToast('success', 'Lead submitted successfully.')
+      resetForm()
     }
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to submit lead'
+    addToast('error', error instanceof Error ? error.message : 'Failed to submit lead')
   } finally {
     submitting.value = false
   }
 }
 
+const goNext = () => {
+  clearErrors()
+  if (currentStep.value === 0 && !validateContact()) return
+  if (currentStep.value === 2 && !validateDiscovery()) return
+  if (currentStep.value < steps.length - 1) {
+    currentStep.value += 1
+  }
+}
+
+const goBack = () => {
+  if (currentStep.value > 0) {
+    currentStep.value -= 1
+  }
+}
+
+const handleSubmit = () => {
+  if (isLastStep.value) {
+    submit()
+    return
+  }
+  goNext()
+}
+
 const flush = async () => {
   if (!navigator.onLine) return
-  const remaining = await flushQueue(async (payload) => submitPayload(payload as LeadPayload))
+  const remaining = await flushQueue(async (payload, attachments) => {
+    try {
+      if (attachments?.photoKeys?.length) {
+        const files = await getOfflinePhotos(attachments.photoKeys)
+        if (files.length) {
+          const urls = await uploadPictures(files)
+          if (urls.length) {
+            const normalized = urls.map((url) =>
+              url.startsWith('http') ? url : `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`,
+            )
+            const leadPayload = payload as LeadPayload
+            leadPayload.project = leadPayload.project ?? {}
+            leadPayload.project.pictures = {
+              outdoorUnitLocation: normalized.map((url) => ({ url })),
+            }
+          }
+        }
+      }
+
+      const ok = await submitPayload(payload as LeadPayload)
+      if (ok && attachments?.photoKeys?.length) {
+        await deleteOfflinePhotos(attachments.photoKeys)
+      }
+      return ok
+    } catch (error) {
+      return false
+    }
+  })
   queueSize.value = remaining
 }
 
@@ -199,8 +431,18 @@ onUnmounted(() => {
     <p class="lead-form__subtitle">Submit a new lead to the HeatOS sales funnel.</p>
     <p v-if="queueSize" class="lead-form__queue">Queued offline leads: {{ queueSize }}</p>
 
-    <form @submit.prevent="submit">
-      <section>
+    <form @submit.prevent="handleSubmit">
+      <ol class="stepper" role="list">
+        <li v-for="(step, index) in steps" :key="step" class="stepper__item">
+          <span
+            class="stepper__dot"
+            :class="{ 'is-active': index === currentStep, 'is-complete': index < currentStep }"
+          ></span>
+          <span class="stepper__label">{{ step }}</span>
+        </li>
+      </ol>
+
+      <section v-if="currentStep === 0">
         <h2>Contact Information</h2>
         <div class="field">
           <label for="firstName">First name</label>
@@ -228,7 +470,7 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <section>
+      <section v-if="currentStep === 1">
         <h2>Address (optional)</h2>
         <div class="field">
           <label for="street">Street</label>
@@ -253,23 +495,160 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <section>
+      <section v-if="currentStep === 2">
+        <h2>Discovery Details (recommended)</h2>
+        <div class="field">
+          <label for="residentialUnits">Residential units</label>
+          <input
+            id="residentialUnits"
+            v-model.number="form.building.buildingInformation.residentialUnits"
+            type="number"
+            min="0"
+          />
+          <span v-if="errors.residentialUnits" class="error">{{ errors.residentialUnits }}</span>
+        </div>
+        <div class="field">
+          <label for="boilerRoomSize">Boiler room size</label>
+          <select id="boilerRoomSize" v-model="form.building.buildingInformation.boilerRoomSize">
+            <option value="">Select a size</option>
+            <option v-for="option in boilerRoomSizeOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="installationLocationCeilingHeight">Installation ceiling height</label>
+          <select
+            id="installationLocationCeilingHeight"
+            v-model="form.building.buildingInformation.installationLocationCeilingHeight"
+          >
+            <option value="">Select a height</option>
+            <option v-for="option in ceilingHeightOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="widthPathway">Pathway width available</label>
+          <select id="widthPathway" v-model="form.building.buildingInformation.widthPathway">
+            <option value="">Select</option>
+            <option v-for="option in yesNoOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="heightPathway">Pathway height available</label>
+          <select id="heightPathway" v-model="form.building.buildingInformation.heightPathway">
+            <option value="">Select</option>
+            <option v-for="option in yesNoOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="typeOfHeating">Type of heating</label>
+          <select id="typeOfHeating" v-model="form.building.energyRelevantInformation.typeOfHeating">
+            <option value="">Select a type</option>
+            <option v-for="option in heatingTypeOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="locationHeating">Heating location</label>
+          <select id="locationHeating" v-model="form.building.energyRelevantInformation.locationHeating">
+            <option value="">Select a location</option>
+            <option v-for="option in heatingLocationOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="consumption">Heating consumption</label>
+          <input id="consumption" v-model.number="form.heatingSystem.consumption" type="number" min="0" />
+          <span v-if="errors.consumption" class="error">{{ errors.consumption }}</span>
+        </div>
+        <div class="field">
+          <label for="consumptionUnit">Consumption unit</label>
+          <select id="consumptionUnit" v-model="form.heatingSystem.consumptionUnit">
+            <option value="">Select a unit</option>
+            <option v-for="option in consumptionUnitOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="systemType">Heating system type</label>
+          <select id="systemType" v-model="form.heatingSystem.systemType">
+            <option value="">Select a system</option>
+            <option v-for="option in systemTypeOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="timeline">Project timeline</label>
+          <select id="timeline" v-model="form.project.timeline">
+            <option value="">Select a timeline</option>
+            <option v-for="option in timelineOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fullReplacementOfHeatingSystemPlanned">Full heating system replacement planned</label>
+          <select
+            id="fullReplacementOfHeatingSystemPlanned"
+            v-model="form.project.fullReplacementOfHeatingSystemPlanned"
+          >
+            <option value="">Select</option>
+            <option v-for="option in yesNoBooleanOptions" :key="option.label" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+      </section>
+
+      <section v-if="currentStep === 3">
         <h2>Outdoor Unit Photos (optional)</h2>
         <div class="field">
           <label for="photos">Upload pictures</label>
-          <input id="photos" type="file" multiple accept="image/*" @change="onFilesSelected" />
+          <input
+            id="photos"
+            ref="fileInput"
+            type="file"
+            multiple
+            accept="image/*"
+            @change="onFilesSelected"
+          />
         </div>
       </section>
 
       <div class="actions">
-        <button type="submit" :disabled="submitting">
+        <button type="button" class="button--ghost" :disabled="isFirstStep" data-testid="back-step" @click="goBack">
+          Back
+        </button>
+        <button v-if="!isLastStep" type="submit" :disabled="submitting" data-testid="next-step">
+          Next
+        </button>
+        <button v-else type="submit" :disabled="submitting" data-testid="submit-lead">
           {{ submitting ? 'Submitting…' : 'Submit lead' }}
         </button>
       </div>
 
-      <p v-if="successMessage" class="success">{{ successMessage }}</p>
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     </form>
+
+    <div class="toaster" role="status" aria-live="polite">
+      <TransitionGroup name="toast" tag="div">
+        <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">
+          <span>{{ toast.message }}</span>
+          <button class="toast__close" type="button" @click="toasts = toasts.filter((t) => t.id !== toast.id)">
+            ×
+          </button>
+        </div>
+      </TransitionGroup>
+    </div>
   </main>
 </template>
 
@@ -321,6 +700,45 @@ form {
   padding: 2rem;
   backdrop-filter: blur(6px);
   animation: rise 500ms ease-out;
+}
+
+.stepper {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.stepper__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stepper__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(15, 118, 110, 0.25);
+  background: transparent;
+}
+
+.stepper__dot.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.stepper__dot.is-complete {
+  background: rgba(15, 118, 110, 0.2);
+  border-color: rgba(15, 118, 110, 0.4);
+}
+
+.stepper__label {
+  font-weight: 600;
 }
 
 section {
@@ -375,7 +793,8 @@ select:focus {
 
 .actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-top: 1.5rem;
 }
 
@@ -394,6 +813,18 @@ button {
     opacity 150ms ease;
 }
 
+button.button--ghost {
+  background: transparent;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+button.button--ghost:hover {
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -410,9 +841,58 @@ button:not(:disabled):hover {
   font-size: 0.85rem;
 }
 
-.success {
-  color: #166534;
-  font-weight: 600;
+.toaster {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 20;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  color: var(--ink);
+}
+
+.toast.success {
+  border-color: rgba(22, 101, 52, 0.3);
+  background: linear-gradient(120deg, #ecfdf3, #f0fdf4);
+}
+
+.toast.error {
+  border-color: rgba(185, 28, 28, 0.3);
+  background: linear-gradient(120deg, #fef2f2, #fff5f5);
+}
+
+.toast__close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
 @keyframes rise {
@@ -431,10 +911,18 @@ button:not(:disabled):hover {
     padding: 1.5rem;
   }
   .actions {
-    justify-content: stretch;
+    flex-direction: column;
   }
   button {
     width: 100%;
+  }
+  .toaster {
+    left: 1rem;
+    right: 1rem;
+    top: 1rem;
+  }
+  .toast {
+    max-width: none;
   }
 }
 </style>

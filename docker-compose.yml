@@ -10,5 +10,32 @@ services:
     environment:
       MONGO_INITDB_DATABASE: vamo-heatos
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: vamo-heatos-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      - mongodb
+    volumes:
+      - api-uploads:/app/apps/api/uploads
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: vamo-heatos-web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
 volumes:
   mongo-data:
+  api-uploads:

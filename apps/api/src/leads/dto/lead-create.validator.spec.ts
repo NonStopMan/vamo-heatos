@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { Logger } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import {
@@ -20,6 +21,13 @@ const basePayload = (): LeadCreateDto => ({
 });
 
 describe('LeadCreateConsistencyRule', () => {
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('flags missing apartmentHeatingSystem for Wohnung', async () => {
     const payload: LeadCreateDto = {
       ...basePayload(),
@@ -33,6 +41,7 @@ describe('LeadCreateConsistencyRule', () => {
 
     const errors = await validate(plainToInstance(LeadCreateDto, payload));
     expect(errors.some((error) => error.constraints?.LeadCreateConsistency)).toBe(true);
+    expect(Logger.prototype.warn).toHaveBeenCalled();
   });
 
   it('flags missing ownership details for shared ownership', async () => {

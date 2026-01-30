@@ -1,16 +1,27 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { defaultEnvPaths } from './config/env';
 import { LeadsModule } from './leads/leads.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: defaultEnvPaths(),
+    }),
     ScheduleModule.forRoot(),
-    MongooseModule.forRoot(
-      process.env.MONGODB_URI ?? 'mongodb://localhost:27017/vamo-heatos',
-    ),
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri:
+          config.get<string>('MONGODB_URI') ??
+          'mongodb+srv://mohammedthabet2010_db_user:XCmjibL28bGqmx8H@cluster0.ttwo2iy.mongodb.net/vamo-heatos?retryWrites=true&w=majority&appName=Cluster0',
+      }),
+    }),
     LeadsModule,
   ],
   controllers: [AppController],

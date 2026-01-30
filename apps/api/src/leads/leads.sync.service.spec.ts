@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { LeadsSyncService } from './leads.sync.service';
 import type { LeadsRepository } from './leads.repository';
 import type { CrmAdapter } from './crm.adapter';
@@ -16,10 +17,16 @@ describe('LeadsSyncService', () => {
   };
 
   beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     repository.findNextPending.mockReset();
     repository.markSynced.mockReset();
     repository.markFailed.mockReset();
     crmAdapter.forwardLead.mockReset();
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('marks lead as synced on successful push', async () => {
@@ -55,5 +62,26 @@ describe('LeadsSyncService', () => {
       'crm down',
       'pending',
     );
+    expect(Logger.prototype.warn).toHaveBeenCalled();
+  });
+
+  it('logs error when max retries reached', async () => {
+    repository.findNextPending.mockResolvedValue({
+      id: 'lead-3',
+      payload: { version: '1.2.0', contact: { contactInformation: {} } },
+      crmRetries: 4,
+    } as never);
+    crmAdapter.forwardLead.mockRejectedValue(new Error('salesforce down'));
+
+    const service = new LeadsSyncService(repository, crmAdapter);
+    await service.processNext();
+
+    expect(repository.markFailed).toHaveBeenCalledWith(
+      'lead-3',
+      5,
+      'salesforce down',
+      'failed',
+    );
+    expect(Logger.prototype.error).toHaveBeenCalled();
   });
 });

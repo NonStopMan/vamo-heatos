@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
   CRM_ADAPTER,
@@ -27,14 +28,19 @@ import { LeadsSyncService } from './leads.sync.service';
     },
     {
       provide: CRM_ADAPTER,
-      useFactory: (salesforceAdapter: SalesforceCrmAdapter) => {
-        console.log('CRM Adapter Factory invoked', isSalesforceEnabled());
-        if (isSalesforceEnabled()) {
+      useFactory: (
+        salesforceAdapter: SalesforceCrmAdapter,
+        config: ConfigService,
+      ) => {
+        const logger = new Logger('CRMAdapterFactory');
+        const enabled = isSalesforceEnabled(config);
+        logger.log(`Salesforce integration enabled: ${enabled}`);
+        if (enabled) {
           return salesforceAdapter;
         }
         return new NoopCrmAdapter();
       },
-      inject: [SalesforceCrmAdapter],
+      inject: [SalesforceCrmAdapter, ConfigService],
     },
     LeadsSyncService,
     SalesforceAuthClient,

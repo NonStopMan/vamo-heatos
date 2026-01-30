@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { LeadCreateDto } from './dto';
 import { SalesforceAuthClient, SalesforceCrmAdapter } from './crm.adapter';
 
@@ -50,14 +51,18 @@ describe('SalesforceCrmAdapter', () => {
     },
   };
 
-  beforeEach(() => {
-    process.env.SALESFORCE_LOGIN_URL = 'https://login.salesforce.com';
-    process.env.SALESFORCE_CLIENT_ID = 'client';
-    process.env.SALESFORCE_USERNAME = 'user';
-    process.env.SALESFORCE_JWT_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----';
-    process.env.SALESFORCE_API_VERSION = 'v61.0';
-    delete process.env.SALESFORCE_ALLOW_DUPLICATES;
-  });
+  const buildConfig = (overrides: Record<string, string | undefined> = {}) =>
+    ({
+      get: (key: string) =>
+        ({
+          SALESFORCE_LOGIN_URL: 'https://login.salesforce.com',
+          SALESFORCE_CLIENT_ID: 'client',
+          SALESFORCE_USERNAME: 'user',
+          SALESFORCE_JWT_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----',
+          SALESFORCE_API_VERSION: 'v61.0',
+          ...overrides,
+        })[key],
+    }) as unknown as ConfigService;
 
   it('authenticates and posts lead', async () => {
     const fetchMock = jest
@@ -77,8 +82,9 @@ describe('SalesforceCrmAdapter', () => {
 
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const authClient = new SalesforceAuthClient();
-    const adapter = new SalesforceCrmAdapter(authClient);
+    const config = buildConfig();
+    const authClient = new SalesforceAuthClient(config);
+    const adapter = new SalesforceCrmAdapter(authClient, config);
 
     await adapter.forwardLead(payload);
 
@@ -94,7 +100,7 @@ describe('SalesforceCrmAdapter', () => {
   });
 
   it('adds duplicate rule header when enabled', async () => {
-    process.env.SALESFORCE_ALLOW_DUPLICATES = 'true';
+    const config = buildConfig({ SALESFORCE_ALLOW_DUPLICATES: 'true' });
 
     const fetchMock = jest
       .fn()
@@ -113,8 +119,8 @@ describe('SalesforceCrmAdapter', () => {
 
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const authClient = new SalesforceAuthClient();
-    const adapter = new SalesforceCrmAdapter(authClient);
+    const authClient = new SalesforceAuthClient(config);
+    const adapter = new SalesforceCrmAdapter(authClient, config);
 
     await adapter.forwardLead(payload);
 
@@ -141,8 +147,9 @@ describe('SalesforceCrmAdapter', () => {
 
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const authClient = new SalesforceAuthClient();
-    const adapter = new SalesforceCrmAdapter(authClient);
+    const config = buildConfig();
+    const authClient = new SalesforceAuthClient(config);
+    const adapter = new SalesforceCrmAdapter(authClient, config);
 
     await adapter.forwardLead(payload);
     await adapter.forwardLead(payload);

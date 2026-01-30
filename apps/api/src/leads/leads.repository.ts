@@ -6,7 +6,10 @@ export const LEADS_REPOSITORY = 'LEADS_REPOSITORY';
 
 export interface LeadsRepository {
   findByExternalId(externalId: string): Promise<LeadDocument | null>;
-  createLead(externalId: string | undefined, payload: Record<string, unknown>): Promise<void>;
+  createLead(
+    externalId: string | undefined,
+    payload: Record<string, unknown>,
+  ): Promise<LeadDocument>;
   findNextPending(maxRetries: number): Promise<LeadDocument | null>;
   markSynced(id: string): Promise<void>;
   markFailed(
@@ -18,14 +21,19 @@ export interface LeadsRepository {
 }
 
 export class MongooseLeadsRepository implements LeadsRepository {
-  constructor(@InjectModel(Lead.name) private readonly leadModel: Model<LeadDocument>) {}
+  constructor(
+    @InjectModel(Lead.name) private readonly leadModel: Model<LeadDocument>,
+  ) {}
 
   async findByExternalId(externalId: string): Promise<LeadDocument | null> {
     return this.leadModel.findOne({ externalId }).exec();
   }
 
-  async createLead(externalId: string | undefined, payload: Record<string, unknown>): Promise<void> {
-    await this.leadModel.create({ externalId, payload });
+  async createLead(
+    externalId: string | undefined,
+    payload: Record<string, unknown>,
+  ): Promise<LeadDocument> {
+    return this.leadModel.create({ externalId, payload });
   }
 
   async findNextPending(maxRetries: number): Promise<LeadDocument | null> {

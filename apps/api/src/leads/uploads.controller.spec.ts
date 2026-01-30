@@ -1,21 +1,84 @@
+import { BlobServiceClient } from '@azure/storage-blob';
+import { InternalServerErrorException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LeadsUploadsController } from './uploads.controller';
 
+jest.mock('@azure/storage-blob', () => ({
+  BlobServiceClient: {
+    fromConnectionString: jest.fn(),
+  },
+}));
+
 describe('LeadsUploadsController', () => {
-  it('returns urls for uploaded files', () => {
-    const controller = new LeadsUploadsController();
-    const result = controller.upload(
+  const buildMocks = () => {
+    const uploadData = jest.fn().mockResolvedValue(undefined);
+    const getBlockBlobClient = jest.fn((name: string) => ({
+      url: `https://example.blob.core.windows.net/leads/${name}`,
+      uploadData,
+    }));
+    const createIfNotExists = jest.fn().mockResolvedValue(undefined);
+    const getContainerClient = jest.fn(() => ({
+      createIfNotExists,
+      getBlockBlobClient,
+    }));
+    (BlobServiceClient.fromConnectionString as jest.Mock).mockReturnValue({
+      getContainerClient,
+    });
+    return { uploadData, getBlockBlobClient, createIfNotExists, getContainerClient };
+  };
+
+  const buildConfig = (values: Record<string, string | undefined>) =>
+    ({
+      get: (key: string) => values[key],
+    }) as unknown as ConfigService;
+
+  it('returns urls for uploaded files', async () => {
+    const config = buildConfig({
+      AZURE_STORAGE_CONNECTION_STRING: 'UseDevelopmentStorage=true',
+      AZURE_STORAGE_CONTAINER: 'leads',
+    });
+    const { uploadData } = buildMocks();
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1700000000000);
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.123456);
+
+    const controller = new LeadsUploadsController(config);
+    const result = await controller.upload(
       [
-        { filename: 'file-a.jpg' } as Express.Multer.File,
-        { filename: 'file-b.png' } as Express.Multer.File,
+        {
+          originalname: 'file-a.jpg',
+          buffer: Buffer.from('a'),
+          mimetype: 'image/jpeg',
+        } as Express.Multer.File,
+        {
+          originalname: 'file-b.png',
+          buffer: Buffer.from('b'),
+          mimetype: 'image/png',
+        } as Express.Multer.File,
       ],
-      {
-        protocol: 'http',
-        get: () => 'localhost:3000',
-      } as never,
     );
 
-    expect(result).toEqual({
-      urls: ['http://localhost:3000/uploads/file-a.jpg', 'http://localhost:3000/uploads/file-b.png'],
-    });
+    expect(result.urls).toHaveLength(2);
+    expect(result.urls[0]).toContain('https://example.blob.core.windows.net/leads/');
+    expect(result.urls[1]).toContain('https://example.blob.core.windows.net/leads/');
+    expect(uploadData).toHaveBeenCalledTimes(2);
+    nowSpy.mockRestore();
+    randomSpy.mockRestore();
+  });
+
+  it('throws internal server error when config is missing', async () => {
+    const config = buildConfig({});
+
+    const controller = new LeadsUploadsController(config);
+
+    await expect(
+      controller.upload([
+        {
+          originalname: 'file-a.jpg',
+          buffer: Buffer.from('a'),
+          mimetype: 'image/jpeg',
+        } as Express.Multer.File,
+      ]),
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
+
   });
 });
