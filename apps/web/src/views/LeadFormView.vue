@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { enqueueLead, flushQueue, getQueueSize } from '../stores/offlineQueue'
-import {
-  deleteOfflinePhotos,
-  getOfflinePhotos,
-  saveOfflinePhotos,
-} from '../stores/offlinePhotos'
+import { deleteOfflinePhotos, getOfflinePhotos, saveOfflinePhotos } from '../stores/offlinePhotos'
 
 type PictureGroup = {
   outdoorUnitLocation?: { url: string }[]
@@ -273,6 +269,38 @@ const resetForm = () => {
   currentStep.value = 0
 }
 
+const sanitizePayload = (value: unknown): unknown => {
+  if (value === null || value === undefined) return undefined
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed.length ? trimmed : undefined
+  }
+  if (Array.isArray(value)) {
+    const cleaned = value.map((item) => sanitizePayload(item)).filter((item) => item !== undefined)
+    return cleaned.length ? cleaned : undefined
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([key, val]) => [key, sanitizePayload(val)] as const)
+      .filter(([, val]) => val !== undefined)
+    return entries.length ? Object.fromEntries(entries) : undefined
+  }
+  return value
+}
+
+const stripExternalId = (payload: Record<string, unknown>) => {
+  if ('id' in payload) {
+    delete payload.id
+  }
+  return payload
+}
+
+const buildPayload = (): LeadPayload => {
+  const cleaned = sanitizePayload(form) as Record<string, unknown> | undefined
+  if (!cleaned) return form
+  return stripExternalId(cleaned) as LeadPayload
+}
+
 const uploadPictures = async (files: File[]): Promise<string[]> => {
   if (!files.length) return []
 
@@ -322,9 +350,10 @@ const submit = async () => {
 
   submitting.value = true
   try {
+    const payload = buildPayload()
     if (!navigator.onLine) {
       const photoKeys = await saveOfflinePhotos(selectedFiles.value)
-      enqueueLead(form, { photoKeys })
+      enqueueLead(payload, { photoKeys })
       queueSize.value = getQueueSize()
       addToast('success', 'Saved offline. Will submit when online.')
       resetForm()
@@ -336,13 +365,13 @@ const submit = async () => {
       const normalized = urls.map((url) =>
         url.startsWith('http') ? url : `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`,
       )
-      form.project = form.project ?? {}
-      form.project.pictures = {
+      payload.project = payload.project ?? {}
+      payload.project.pictures = {
         outdoorUnitLocation: normalized.map((url) => ({ url })),
       }
     }
 
-    const ok = await submitPayload(form)
+    const ok = await submitPayload(payload)
     if (ok) {
       addToast('success', 'Lead submitted successfully.')
       resetForm()
@@ -389,16 +418,22 @@ const flush = async () => {
             const normalized = urls.map((url) =>
               url.startsWith('http') ? url : `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`,
             )
-            const leadPayload = payload as LeadPayload
+            const leadPayload = stripExternalId(
+              sanitizePayload(payload) as Record<string, unknown>,
+            ) as LeadPayload
             leadPayload.project = leadPayload.project ?? {}
             leadPayload.project.pictures = {
               outdoorUnitLocation: normalized.map((url) => ({ url })),
             }
+            payload = leadPayload as Record<string, unknown>
           }
         }
       }
 
-      const ok = await submitPayload(payload as LeadPayload)
+      const cleaned = stripExternalId(
+        sanitizePayload(payload) as Record<string, unknown>,
+      ) as LeadPayload
+      const ok = await submitPayload(cleaned)
       if (ok && attachments?.photoKeys?.length) {
         await deleteOfflinePhotos(attachments.photoKeys)
       }
@@ -548,7 +583,10 @@ onUnmounted(() => {
         </div>
         <div class="field">
           <label for="typeOfHeating">Type of heating</label>
-          <select id="typeOfHeating" v-model="form.building.energyRelevantInformation.typeOfHeating">
+          <select
+            id="typeOfHeating"
+            v-model="form.building.energyRelevantInformation.typeOfHeating"
+          >
             <option value="">Select a type</option>
             <option v-for="option in heatingTypeOptions" :key="option" :value="option">
               {{ option }}
@@ -557,7 +595,10 @@ onUnmounted(() => {
         </div>
         <div class="field">
           <label for="locationHeating">Heating location</label>
-          <select id="locationHeating" v-model="form.building.energyRelevantInformation.locationHeating">
+          <select
+            id="locationHeating"
+            v-model="form.building.energyRelevantInformation.locationHeating"
+          >
             <option value="">Select a location</option>
             <option v-for="option in heatingLocationOptions" :key="option" :value="option">
               {{ option }}
@@ -566,7 +607,12 @@ onUnmounted(() => {
         </div>
         <div class="field">
           <label for="consumption">Heating consumption</label>
-          <input id="consumption" v-model.number="form.heatingSystem.consumption" type="number" min="0" />
+          <input
+            id="consumption"
+            v-model.number="form.heatingSystem.consumption"
+            type="number"
+            min="0"
+          />
           <span v-if="errors.consumption" class="error">{{ errors.consumption }}</span>
         </div>
         <div class="field">
@@ -597,7 +643,9 @@ onUnmounted(() => {
           </select>
         </div>
         <div class="field">
-          <label for="fullReplacementOfHeatingSystemPlanned">Full heating system replacement planned</label>
+          <label for="fullReplacementOfHeatingSystemPlanned"
+            >Full heating system replacement planned</label
+          >
           <select
             id="fullReplacementOfHeatingSystemPlanned"
             v-model="form.project.fullReplacementOfHeatingSystemPlanned"
@@ -626,7 +674,13 @@ onUnmounted(() => {
       </section>
 
       <div class="actions">
-        <button type="button" class="button--ghost" :disabled="isFirstStep" data-testid="back-step" @click="goBack">
+        <button
+          type="button"
+          class="button--ghost"
+          :disabled="isFirstStep"
+          data-testid="back-step"
+          @click="goBack"
+        >
           Back
         </button>
         <button v-if="!isLastStep" type="submit" :disabled="submitting" data-testid="next-step">
@@ -636,14 +690,17 @@ onUnmounted(() => {
           {{ submitting ? 'Submitting…' : 'Submit lead' }}
         </button>
       </div>
-
     </form>
 
     <div class="toaster" role="status" aria-live="polite">
       <TransitionGroup name="toast" tag="div">
         <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">
           <span>{{ toast.message }}</span>
-          <button class="toast__close" type="button" @click="toasts = toasts.filter((t) => t.id !== toast.id)">
+          <button
+            class="toast__close"
+            type="button"
+            @click="toasts = toasts.filter((t) => t.id !== toast.id)"
+          >
             ×
           </button>
         </div>
@@ -886,7 +943,9 @@ button:not(:disabled):hover {
 
 .toast-enter-active,
 .toast-leave-active {
-  transition: transform 200ms ease, opacity 200ms ease;
+  transition:
+    transform 200ms ease,
+    opacity 200ms ease;
 }
 
 .toast-enter-from,

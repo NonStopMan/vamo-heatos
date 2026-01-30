@@ -144,5 +144,6 @@ describe('LeadFormView', () => {
     expect(body.heatingSystem.systemType).toBe('Erdgas')
     expect(body.project.timeline).toBe('Sofort')
     expect(body.project.fullReplacementOfHeatingSystemPlanned).toBe(true)
+    expect(body.id).toBeUndefined()
   })
 })
