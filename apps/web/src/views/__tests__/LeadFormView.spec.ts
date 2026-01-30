@@ -5,6 +5,15 @@ import LeadFormView from '../LeadFormView.vue'
 describe('LeadFormView', () => {
   let fetchSpy: ReturnType<typeof vi.fn>
 
+  const nextTick = async (wrapper: ReturnType<typeof mount>) => {
+    await wrapper.vm.$nextTick()
+  }
+
+  const submitStep = async (wrapper: ReturnType<typeof mount>) => {
+    await wrapper.find('form').trigger('submit.prevent')
+    await nextTick(wrapper)
+  }
+
   const fillRequired = async (wrapper: ReturnType<typeof mount>) => {
     await wrapper.find('#firstName').setValue('Ada')
     await wrapper.find('#lastName').setValue('Lovelace')
@@ -30,7 +39,7 @@ describe('LeadFormView', () => {
   it('shows validation errors when required fields are missing', async () => {
     const wrapper = mount(LeadFormView)
 
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
+    await submitStep(wrapper)
 
     expect(wrapper.text()).toContain('First name is required')
     expect(wrapper.text()).toContain('Last name is required')
@@ -42,10 +51,10 @@ describe('LeadFormView', () => {
     const wrapper = mount(LeadFormView)
 
     await fillRequired(wrapper)
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="submit-lead"]').trigger('click')
+    await submitStep(wrapper)
+    await submitStep(wrapper)
+    await submitStep(wrapper)
+    await submitStep(wrapper)
     await flushPromises()
 
     expect(wrapper.text()).toContain('Lead submitted successfully.')
@@ -61,10 +70,10 @@ describe('LeadFormView', () => {
     vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch)
 
     await fillRequired(wrapper)
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="submit-lead"]').trigger('click')
+    await submitStep(wrapper)
+    await submitStep(wrapper)
+    await submitStep(wrapper)
+    await submitStep(wrapper)
     await flushPromises()
 
     expect(wrapper.text()).toContain('Bad request')
@@ -77,7 +86,7 @@ describe('LeadFormView', () => {
     await wrapper.find('#lastName').setValue('Lovelace')
     await wrapper.find('#phone').setValue('+49 123 456')
     await wrapper.find('#email').setValue('invalid-email')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
+    await submitStep(wrapper)
 
     expect(wrapper.text()).toContain('Email must be valid')
   })
@@ -86,10 +95,10 @@ describe('LeadFormView', () => {
     const wrapper = mount(LeadFormView)
 
     await fillRequired(wrapper)
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
+    await submitStep(wrapper)
+    await submitStep(wrapper)
     await wrapper.find('#residentialUnits').setValue('-1')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
+    await submitStep(wrapper)
 
     expect(wrapper.text()).toContain('Residential units must be 0 or more')
   })
@@ -98,8 +107,8 @@ describe('LeadFormView', () => {
     const wrapper = mount(LeadFormView)
 
     await fillRequired(wrapper)
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
+    await submitStep(wrapper)
+    await submitStep(wrapper)
     await wrapper.find('#residentialUnits').setValue('2')
     await wrapper.find('#boilerRoomSize').setValue('mehr als 4 qm')
     await wrapper.find('#installationLocationCeilingHeight').setValue('180 - 199 cm')
@@ -113,8 +122,8 @@ describe('LeadFormView', () => {
     await wrapper.find('#timeline').setValue('Sofort')
     await wrapper.find('#fullReplacementOfHeatingSystemPlanned').setValue('true')
 
-    await wrapper.find('[data-testid="next-step"]').trigger('click')
-    await wrapper.find('[data-testid="submit-lead"]').trigger('click')
+    await submitStep(wrapper)
+    await submitStep(wrapper)
     await flushPromises()
 
     expect(fetchSpy).toHaveBeenCalled()

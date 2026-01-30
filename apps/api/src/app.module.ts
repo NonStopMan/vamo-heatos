@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { defaultEnvPaths } from './config/env';
+import { HealthModule } from './health/health.module';
 import { LeadsModule } from './leads/leads.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { LeadsModule } from './leads/leads.module';
           'mongodb+srv://mohammedthabet2010_db_user:XCmjibL28bGqmx8H@cluster0.ttwo2iy.mongodb.net/vamo-heatos?retryWrites=true&w=majority&appName=Cluster0',
       }),
     }),
+    HealthModule,
     LeadsModule,
   ],
   controllers: [AppController],
