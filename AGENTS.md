@@ -97,3 +97,37 @@ If uncertain:
 
 - Ask for clarification
 - Or choose the simplest reasonable solution
+
+---
+
+## 8. Testing Expectations
+
+- Update or add unit tests when behavior changes.
+- Use the existing commands:
+  - API: `pnpm --filter api test`
+  - Web: `pnpm --filter web test:unit`
+- If tests are skipped or fail, explain why and what is needed to fix.
+
+## 9. Commit Expectations
+
+- Use clear, imperative commit messages (e.g., “Add health check endpoint”).
+- Keep commits focused on one logical change.
+- Include docs updates in the same commit when they describe the change.
+
+## 10. Code Style & Formatting
+
+- Follow project tooling for formatting and linting.
+- Prefer explicit DTOs and typed payloads over `any`.
+- Keep modules small and aligned with the separation of concerns in Section 3.
+
+## 11. Security & Data Handling
+
+- Never commit real secrets to git; use `.env` files and deployment secrets.
+- Avoid logging PII unless necessary; redact where possible.
+- Treat CRM forwarding as a downstream side effect and do not block persistence on CRM failures.
+
+## 12. Deployment & Ops Notes
+
+- Production requires environment variables for MongoDB, Salesforce (if enabled), and Azure storage.
+- Ensure `/health` stays lightweight and safe for monitoring.
+- Document any new required env vars in README/docs.

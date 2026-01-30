@@ -28,3 +28,5 @@ Ensure your profile has **API Enabled** permission.
 
 ## 5) Verify
 Run the API and submit a lead. If `SALESFORCE_ENABLED=true`, the adapter will forward leads to Salesforce.
+You can also verify connectivity via:
+- `GET /health` → `checks.salesforce.status` should be `ok`.

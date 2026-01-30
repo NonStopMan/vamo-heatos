@@ -53,7 +53,20 @@ pnpm --filter web test:unit
 
 ## API (Planned)
 - `POST /leads` — create a lead (spec v1.2.0)
-- `POST /leads/uploads` — upload pictures (prototype)
+- `POST /leads/uploads` — upload pictures (stored in Azure Blob)
+- `GET /health` — health status (MongoDB + Salesforce auth)
+
+## Frontend Features
+- Multi-step lead form (Contact → Address → Discovery → Photos)
+- Offline queue for leads (auto-flush on reconnect)
+- Offline photo storage using IndexedDB (uploads on reconnect)
+- Toasts for success/error feedback
+
+## Storage (Pictures)
+- Picture uploads go to Azure Blob Storage
+- Required env vars:
+  - `AZURE_STORAGE_CONNECTION_STRING`
+  - `AZURE_STORAGE_CONTAINER` (public access set to `blob`)
 
 ## Salesforce CRM Adapter
 Set `SALESFORCE_ENABLED=true` to use the Salesforce adapter. Required env vars:
@@ -75,6 +88,7 @@ For setup steps, see `docs/salesforce-setup.md`.
 - Server-side validation is authoritative.
 - Leads must be persisted before any CRM forwarding.
 - Unknown fields are only allowed under `metadata` or must be explicitly ignored and documented.
+- Monorepo: API and web live in the same repository to keep changes aligned, simplify local dev, and reduce integration overhead.
 
 ## AI Assistance
 This repo is developed with AI assistance. See `AGENTS.md` for rules and constraints.

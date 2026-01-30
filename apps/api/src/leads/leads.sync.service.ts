@@ -35,12 +35,13 @@ export class LeadsSyncService {
         await this.repository.markSynced(lead.id);
         this.logger.log(`Lead synced to CRM (leadId=${lead.id})`);
       } catch (error) {
-        const message =
+        const rawMessage =
           error instanceof Error ? error.message : 'Unknown CRM error';
+        const message = simplifyCrmError(rawMessage);
         const nextRetries = (lead.crmRetries ?? 0) + 1;
         const status = nextRetries >= this.maxRetries ? 'failed' : 'pending';
         await this.repository.markFailed(lead.id, nextRetries, message, status);
-        const logMessage = `CRM sync failed (leadId=${lead.id}, retries=${nextRetries}, status=${status}): ${message}`;
+        const logMessage = `CRM sync failed (leadId=${lead.id}, retries=${nextRetries}, status=${status}): ${rawMessage}`;
         if (status === 'failed') {
           const stack = error instanceof Error ? error.stack : undefined;
           this.logger.error(logMessage, stack);
@@ -53,3 +54,26 @@ export class LeadsSyncService {
     }
   }
 }
+
+const simplifyCrmError = (message: string): string => {
+  const start = message.indexOf('[');
+  const end = message.lastIndexOf(']');
+  if (start === -1 || end === -1 || end <= start) {
+    return message;
+  }
+
+  const jsonText = message.slice(start, end + 1);
+  try {
+    const parsed = JSON.parse(jsonText) as Array<{ errorCode?: string; message?: string }>;
+    const first = parsed[0];
+    if (first?.errorCode || first?.message) {
+      const code = first.errorCode ?? 'UNKNOWN';
+      const msg = first.message ?? 'Unknown CRM error';
+      return `${code}: ${msg}`;
+    }
+  } catch {
+    return message;
+  }
+
+  return message;
+};

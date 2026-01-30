@@ -84,4 +84,27 @@ describe('LeadsSyncService', () => {
     );
     expect(Logger.prototype.error).toHaveBeenCalled();
   });
+
+  it('stores simplified Salesforce error details', async () => {
+    repository.findNextPending.mockResolvedValue({
+      id: 'lead-4',
+      payload: { version: '1.2.0', contact: { contactInformation: {} } },
+      crmRetries: 0,
+    } as never);
+    crmAdapter.forwardLead.mockRejectedValue(
+      new Error(
+        'Salesforce lead create failed: 400 [{"errorCode":"DUPLICATES_DETECTED","message":"Use one of these records?"}]',
+      ),
+    );
+
+    const service = new LeadsSyncService(repository, crmAdapter);
+    await service.processNext();
+
+    expect(repository.markFailed).toHaveBeenCalledWith(
+      'lead-4',
+      1,
+      'DUPLICATES_DETECTED: Use one of these records?',
+      'pending',
+    );
+  });
 });
