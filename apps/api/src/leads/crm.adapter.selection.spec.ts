@@ -2,14 +2,32 @@ import { isSalesforceEnabled } from './crm.adapter';
 
 describe('CRM adapter selection', () => {
   it('treats truthy values case-insensitively', () => {
-    expect(isSalesforceEnabled({ SALESFORCE_ENABLED: 'true' } as NodeJS.ProcessEnv)).toBe(true);
-    expect(isSalesforceEnabled({ SALESFORCE_ENABLED: 'TRUE' } as NodeJS.ProcessEnv)).toBe(true);
-    expect(isSalesforceEnabled({ SALESFORCE_ENABLED: 'TrUe' } as NodeJS.ProcessEnv)).toBe(true);
+    const config = {
+      get: (key: string) => ({ SALESFORCE_ENABLED: 'true' })[key],
+    } as never;
+    expect(isSalesforceEnabled(config)).toBe(true);
+    const configUpper = {
+      get: (key: string) => ({ SALESFORCE_ENABLED: 'TRUE' })[key],
+    } as never;
+    expect(isSalesforceEnabled(configUpper)).toBe(true);
+    const configMixed = {
+      get: (key: string) => ({ SALESFORCE_ENABLED: 'TrUe' })[key],
+    } as never;
+    expect(isSalesforceEnabled(configMixed)).toBe(true);
   });
 
   it('treats other values as disabled', () => {
-    expect(isSalesforceEnabled({ SALESFORCE_ENABLED: 'false' } as NodeJS.ProcessEnv)).toBe(false);
-    expect(isSalesforceEnabled({ SALESFORCE_ENABLED: '' } as NodeJS.ProcessEnv)).toBe(false);
-    expect(isSalesforceEnabled({} as NodeJS.ProcessEnv)).toBe(false);
+    const configFalse = {
+      get: (key: string) => ({ SALESFORCE_ENABLED: 'false' })[key],
+    } as never;
+    expect(isSalesforceEnabled(configFalse)).toBe(false);
+    const configEmpty = {
+      get: (key: string) => ({ SALESFORCE_ENABLED: '' })[key],
+    } as never;
+    expect(isSalesforceEnabled(configEmpty)).toBe(false);
+    const configMissing = {
+      get: (_key: string) => undefined,
+    } as never;
+    expect(isSalesforceEnabled(configMissing)).toBe(false);
   });
 });

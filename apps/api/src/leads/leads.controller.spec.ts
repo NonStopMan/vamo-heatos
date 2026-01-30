@@ -9,7 +9,7 @@ describe('LeadsController', () => {
   beforeEach(async () => {
     const repository: LeadsRepository = {
       findByExternalId: jest.fn().mockResolvedValue(null),
-      createLead: jest.fn().mockResolvedValue(undefined),
+      createLead: jest.fn().mockResolvedValue({ id: 'lead-1' } as never),
       findNextPending: jest.fn().mockResolvedValue(null),
       markSynced: jest.fn().mockResolvedValue(undefined),
       markFailed: jest.fn().mockResolvedValue(undefined),

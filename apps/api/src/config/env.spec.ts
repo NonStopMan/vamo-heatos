@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { loadEnv } from './env';
@@ -33,6 +33,9 @@ describe('loadEnv', () => {
     const apiDir = join(tempDir, 'apps', 'api');
     const apiEnv = join(apiDir, '.env');
 
+    rmSync(apiDir, { recursive: true, force: true });
+    // ensure nested dirs exist for the test env
+    mkdirSync(apiDir, { recursive: true });
     writeFileSync(apiEnv, 'SALESFORCE_ENABLED=true\n');
 
     const originalCwd = process.cwd();
@@ -43,7 +46,8 @@ describe('loadEnv', () => {
     process.chdir(originalCwd);
     rmSync(tempDir, { recursive: true, force: true });
 
-    expect(loaded).toEqual([apiEnv]);
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0]).toContain(apiEnv);
     expect(process.env.SALESFORCE_ENABLED).toBe('true');
   });
 

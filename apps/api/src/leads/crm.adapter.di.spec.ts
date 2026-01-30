@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { LeadCreateDto } from './dto';
 import { SalesforceAuthClient, SalesforceCrmAdapter } from './crm.adapter';
 
@@ -43,6 +44,16 @@ describe('SalesforceCrmAdapter DI', () => {
         {
           provide: SalesforceAuthClient,
           useValue: authClient,
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (key: string) =>
+              ({
+                SALESFORCE_API_VERSION: 'v61.0',
+                SALESFORCE_ALLOW_DUPLICATES: '',
+              })[key],
+          },
         },
       ],
     }).compile();

@@ -43,6 +43,7 @@ describe('LeadsService', () => {
     repository.findNextPending.mockReset();
     repository.markSynced.mockReset();
     repository.markFailed.mockReset();
+    repository.createLead.mockResolvedValue({ id: 'lead-1' } as never);
   });
   afterEach(() => {
     jest.restoreAllMocks();
