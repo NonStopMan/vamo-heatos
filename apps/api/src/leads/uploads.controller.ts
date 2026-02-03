@@ -3,18 +3,25 @@ import {
   InternalServerErrorException,
   Logger,
   Post,
+  Req,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { BlobServiceClient } from '@azure/storage-blob';
+import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 import { memoryStorage } from 'multer';
 import { extname } from 'path';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 const storage = memoryStorage();
 
 @Controller('leads')
+@UseGuards(ApiKeyGuard)
+@Throttle({ default: { limit: 20, ttl: 60 } })
 export class LeadsUploadsController {
   private readonly logger = new Logger(LeadsUploadsController.name);
 
@@ -32,9 +39,14 @@ export class LeadsUploadsController {
 
   @Post('uploads')
   @UseInterceptors(FilesInterceptor('files', 10, { storage }))
-  async upload(@UploadedFiles() files: Express.Multer.File[]) {
+  async upload(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() request: Request,
+  ) {
     const fileCount = files?.length ?? 0;
-    this.logger.log(`Uploading ${fileCount} picture(s) to Azure Blob Storage`);
+    this.logger.log(
+      `Uploading ${fileCount} picture(s) to Azure Blob Storage (requestId=${request.requestId})`,
+    );
 
     try {
       const containerClient = this.getContainerClient();
@@ -49,12 +61,17 @@ export class LeadsUploadsController {
         return blobClient.url;
       });
       const urls = await Promise.all(uploads);
-      this.logger.log(`Uploaded ${urls.length} picture(s) successfully`);
+      this.logger.log(
+        `Uploaded ${urls.length} picture(s) successfully (requestId=${request.requestId})`,
+      );
       return { urls };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       const stack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Picture upload failed: ${message}`, stack);
+      this.logger.error(
+        `Picture upload failed: ${message} (requestId=${request.requestId})`,
+        stack,
+      );
       throw new InternalServerErrorException({
         reason: 'Internal Server Error',
         issues: [],

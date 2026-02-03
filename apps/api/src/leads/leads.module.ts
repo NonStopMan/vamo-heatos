@@ -14,6 +14,8 @@ import { Lead, LeadSchema } from './lead.schema';
 import { LEADS_REPOSITORY, MongooseLeadsRepository } from './leads.repository';
 import { LeadsService } from './leads.service';
 import { LeadsSyncService } from './leads.sync.service';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
+import { Reflector } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { LeadsSyncService } from './leads.sync.service';
     LeadsSyncService,
     SalesforceAuthClient,
     SalesforceCrmAdapter,
+    Reflector,
+    ApiKeyGuard,
   ],
 })
 export class LeadsModule {}

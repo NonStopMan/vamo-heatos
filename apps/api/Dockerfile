@@ -2,11 +2,11 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/package.json
 COPY apps/api/package.json apps/api/package.json
 
-RUN pnpm install --frozen-lockfile --filter @vamo-heatos/shared --filter api
+RUN pnpm install --frozen-lockfile --filter @vamo-heatos/shared --filter api --include-workspace-root
 
 FROM deps AS build
 COPY packages/shared ./packages/shared

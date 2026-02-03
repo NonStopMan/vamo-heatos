@@ -9,6 +9,7 @@ export interface LeadsRepository {
   createLead(
     externalId: string | undefined,
     payload: Record<string, unknown>,
+    context?: { requestId?: string; sourceIp?: string; userAgent?: string },
   ): Promise<LeadDocument>;
   findNextPending(maxRetries: number): Promise<LeadDocument | null>;
   markSynced(id: string): Promise<void>;
@@ -32,8 +33,15 @@ export class MongooseLeadsRepository implements LeadsRepository {
   async createLead(
     externalId: string | undefined,
     payload: Record<string, unknown>,
+    context?: { requestId?: string; sourceIp?: string; userAgent?: string },
   ): Promise<LeadDocument> {
-    return this.leadModel.create({ externalId, payload });
+    return this.leadModel.create({
+      externalId,
+      payload,
+      requestId: context?.requestId,
+      sourceIp: context?.sourceIp,
+      userAgent: context?.userAgent,
+    });
   }
 
   async findNextPending(maxRetries: number): Promise<LeadDocument | null> {
