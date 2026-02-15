@@ -30,9 +30,10 @@ Focus: speed to market, low cost, simplicity.
 **Operational notes**
 
 - Single region.
-- Basic logging with provider defaults.
+- Basic structured logging with request IDs.
 - Backups via MongoDB Atlas automated backups (or daily dumps).
 - Add `/health` checks for MongoDB and Salesforce auth in monitoring.
+- Expose `/metrics` for Prometheus scraping when available.
 
 ## Stage B (≈ 50,000 leads/month)
 

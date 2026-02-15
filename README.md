@@ -55,6 +55,12 @@ pnpm --filter web test:unit
 - `POST /leads` — create a lead (spec v1.2.0)
 - `POST /leads/uploads` — upload pictures (stored in Azure Blob)
 - `GET /health` — health status (MongoDB + Salesforce auth)
+- `GET /metrics` — Prometheus metrics
+
+## Authentication
+- `POST /leads` is public to allow anonymous lead submissions.
+- `POST /leads/uploads` still requires an API key.
+- Send `x-api-key: <API_KEY>` (or `Authorization: ApiKey <API_KEY>`) for protected routes.
 
 ## Frontend Features
 - Multi-step lead form (Contact → Address → Discovery → Photos)
@@ -83,6 +89,15 @@ For setup steps, see `docs/salesforce-setup.md`.
 - GitHub Actions workflow in `.github/workflows/ci.yml`.
 - Runs build + API tests + web unit tests on PRs and main.
 - Recommended branch protection: require `CI / build-and-test` to pass before merge.
+
+## Production Setup
+- Copy `.env.example` to `.env` and fill in secrets.
+- Required runtime env vars: `MONGODB_URI`, `API_KEY`, `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER`, `WEB_ORIGIN`.
+- Optional: Salesforce vars if CRM forwarding is enabled.
+- Health checks should target `GET /health`.
+- Metrics are exposed at `GET /metrics` for scraping.
+
+See `docs/deployment.md` for provider-specific steps (Render-first).
 
 ## Notes
 - Server-side validation is authoritative.

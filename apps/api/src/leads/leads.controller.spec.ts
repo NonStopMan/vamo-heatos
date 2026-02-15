@@ -1,5 +1,7 @@
 import { Test } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { LeadsController } from './leads.controller';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 import { LEADS_REPOSITORY, LeadsRepository } from './leads.repository';
 import { LeadsService } from './leads.service';
 
@@ -19,6 +21,11 @@ describe('LeadsController', () => {
       controllers: [LeadsController],
       providers: [
         LeadsService,
+        ApiKeyGuard,
+        {
+          provide: ConfigService,
+          useValue: { get: () => 'test-key' },
+        },
         {
           provide: LEADS_REPOSITORY,
           useValue: repository,
@@ -30,17 +37,24 @@ describe('LeadsController', () => {
   });
 
   it('returns a qualification response on create', async () => {
-    const result = await controller.createLead({
-      version: '1.2.0',
-      contact: {
-        contactInformation: {
-          firstName: 'First',
-          lastName: 'Last',
-          phone: '+49 00000000000',
-          email: 'email@example.com',
+    const result = await controller.createLead(
+      {
+        version: '1.2.0',
+        contact: {
+          contactInformation: {
+            firstName: 'First',
+            lastName: 'Last',
+            phone: '+49 00000000000',
+            email: 'email@example.com',
+          },
         },
       },
-    });
+      {
+        requestId: 'req-1',
+        headers: {},
+        ip: '127.0.0.1',
+      } as never,
+    );
     expect(result).toEqual({
       leadStage: 'qualification',
       dataAcquisitionLink: 'https://www.vamo-energy.com/rechner',

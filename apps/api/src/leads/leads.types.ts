@@ -5,3 +5,9 @@ export type LeadCreationResult = {
   dataAcquisitionLink: string | null;
   appointmentBookingLink: string | null;
 };
+
+export type LeadRequestContext = {
+  requestId?: string;
+  sourceIp?: string;
+  userAgent?: string;
+};

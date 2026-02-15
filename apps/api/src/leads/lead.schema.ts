@@ -9,6 +9,15 @@ export class Lead {
   @Prop({ type: MongooseSchema.Types.Mixed, required: true })
   payload!: Record<string, unknown>;
 
+  @Prop({ type: String })
+  requestId?: string;
+
+  @Prop({ type: String })
+  sourceIp?: string;
+
+  @Prop({ type: String })
+  userAgent?: string;
+
   @Prop({ type: String, enum: ['pending', 'synced', 'failed'], default: 'pending' })
   crmStatus!: 'pending' | 'synced' | 'failed';
 

@@ -5,10 +5,14 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { requestIdMiddleware } from './common/middleware/request-id.middleware';
+import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor';
+import { HttpMetricsInterceptor } from './common/interceptors/http-metrics.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
+  app.use(requestIdMiddleware);
   app.enableCors({
     origin: config.get<string>('WEB_ORIGIN') ?? 'http://localhost:5173',
   });
@@ -20,6 +24,10 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(
+    app.get(RequestLoggingInterceptor),
+    app.get(HttpMetricsInterceptor),
+  );
   app.useStaticAssets(join(__dirname, '..', 'uploads'), { prefix: '/uploads' });
   await app.listen(config.get<number>('PORT') ?? 3000);
 }

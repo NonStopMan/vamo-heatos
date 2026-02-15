@@ -36,6 +36,19 @@ services:
     depends_on:
       - api
 
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: vamo-heatos-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - api
+
 volumes:
   mongo-data:
   api-uploads:
+  prometheus-data:

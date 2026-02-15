@@ -52,10 +52,22 @@ describe('LeadsService', () => {
   it('creates a lead and returns qualification by default', async () => {
     repository.findByExternalId.mockResolvedValue(null);
     const service = new LeadsService(repository);
-    const result = await service.createLead(buildMinimalPayload());
+    const result = await service.createLead(buildMinimalPayload(), {
+      requestId: 'req-1',
+      sourceIp: '127.0.0.1',
+      userAgent: 'jest',
+    });
 
     expect(result.leadStage).toBe('qualification');
-    expect(repository.createLead).toHaveBeenCalledTimes(1);
+    expect(repository.createLead).toHaveBeenCalledWith(
+      undefined,
+      expect.any(Object),
+      {
+        requestId: 'req-1',
+        sourceIp: '127.0.0.1',
+        userAgent: 'jest',
+      },
+    );
   });
 
   it('throws conflict when external id exists', async () => {
@@ -73,7 +85,9 @@ describe('LeadsService', () => {
     repository.createLead.mockRejectedValue(new Error('db down'));
     const service = new LeadsService(repository);
 
-    await expect(service.createLead(buildMinimalPayload())).rejects.toThrow('db down');
+    await expect(service.createLead(buildMinimalPayload())).rejects.toThrow(
+      'db down',
+    );
     expect(Logger.prototype.error).toHaveBeenCalled();
   });
 

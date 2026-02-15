@@ -55,6 +55,11 @@ describe('LeadsUploadsController', () => {
           mimetype: 'image/png',
         } as Express.Multer.File,
       ],
+      {
+        requestId: 'req-1',
+        headers: {},
+        ip: '127.0.0.1',
+      } as never,
     );
 
     expect(result.urls).toHaveLength(2);
@@ -71,14 +76,20 @@ describe('LeadsUploadsController', () => {
     const controller = new LeadsUploadsController(config);
 
     await expect(
-      controller.upload([
+      controller.upload(
+        [
+          {
+            originalname: 'file-a.jpg',
+            buffer: Buffer.from('a'),
+            mimetype: 'image/jpeg',
+          } as Express.Multer.File,
+        ],
         {
-          originalname: 'file-a.jpg',
-          buffer: Buffer.from('a'),
-          mimetype: 'image/jpeg',
-        } as Express.Multer.File,
-      ]),
+          requestId: 'req-1',
+          headers: {},
+          ip: '127.0.0.1',
+        } as never,
+      ),
     ).rejects.toBeInstanceOf(InternalServerErrorException);
-
   });
 });
